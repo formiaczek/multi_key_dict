@@ -4,6 +4,8 @@ Created on 26 May 2013
 @author: lukasz.forynski
 
 @brief: Implementation of the multi-key dictionary.
+
+https://github.com/formiaczek/python_data_structures
 ___________________________________
 
  Copyright (c) 2013 Lukasz Forynski <lukasz.forynski@gmail.com>
@@ -27,7 +29,7 @@ DEALINGS IN THE SOFTWARE.
 
 class multi_key_dictionary(object):
     """ Purpose of this type is to provie a multi-key dictionary.
-    Such a dictionary has the same interface as a standard dictionary, but allows
+    Such a dictionary has a similar interface to the standard dictionary, but allows
     accessing / iterating items using multiple keys, i.e. it provices mapping from
     different types of keys (and also different keys of the same type) to the same value. 
     For example:
@@ -40,7 +42,7 @@ class multi_key_dictionary(object):
         # mapping all keys to the assigned value
         k[1000, 'kilo', 'k'] = 'kilo (x1000)'
         print k[100]   # will print 'kilo (x1000)'
-        print k['k']  # will also print 'okilo (x1000)'
+        print k['k']  # will also print 'kilo (x1000)'
         
         # the same way objects can be updated, and if an object is updated using one key, the new value will
         # be accessible using any other key, e.g. for example above:
@@ -103,7 +105,7 @@ class multi_key_dictionary(object):
     def iteritems(self, by_key=None):
         """ Returns an iterator over the dictionary's (key, value) pairs.
             @param by_key if specified, iterator for a dictionary of it's type will be used (if available).
-                   Otherwise, iterator will use a dictionary for which keys are first in lexicographical order.
+                   Otherwise, iterator will use a dictionary with keys whose type name is first in lexicographical order.
         """
         intermediate_key = self.__find_intermediate_key(by_key)
         if intermediate_key and self.__dict__.has_key(intermediate_key):
@@ -113,7 +115,7 @@ class multi_key_dictionary(object):
     def iterkeys(self, by_key=None):
         """ Returns an iterator over the dictionary's keys.
             @param by_key if specified, iterator for a dictionary of it's type will be used (if available).
-                   Otherwise, iterator will use a dictionary for which keys are first in lexicographical order.
+                   Otherwise, iterator will use a dictionary with keys whose type name is first in lexicographical order.
         """
         intermediate_key = self.__find_intermediate_key(by_key)
         if intermediate_key and self.__dict__.has_key(intermediate_key):
@@ -122,7 +124,7 @@ class multi_key_dictionary(object):
     def itervalues(self, by_key=None):
         """ Returns an iterator over the dictionary's values.
             @param by_key if specified, iterator for a dictionary of it's type will be used (if available).
-                   Otherwise, iterator will use a dictionary for which keys are first in lexicographical order.
+                   Otherwise, iterator will use a dictionary with keys whose type name is first in lexicographical order.
         """
         intermediate_key = self.__find_intermediate_key(by_key)        
         if intermediate_key and self.__dict__.has_key(intermediate_key):
@@ -132,8 +134,8 @@ class multi_key_dictionary(object):
     def items(self, by_key=None):
         """ Returns a copy of the dictionary's values.
             @param by_key if specified, values will be sorted in the order for dictionary of it's type.
-                 Otherwise they will be sorted by in the order for dictionary for which type of it's key
-                 is first in lexicographical order (i.e.: as for '(type(xx))'
+                 Otherwise they will be sorted in the order as for the dictionary with the key name
+                 that comes first in lexicographical order (i.e.: as for '(type(xx))'
         """
         all_items = []
         intermediate_key = self.__find_intermediate_key(by_key)
@@ -145,12 +147,19 @@ class multi_key_dictionary(object):
     def keys(self, by_key=None):
         """ Returns a copy of the dictionary's keys.
             @param by_key if specified, keys will be sorted in the order for dictionary of it's type.
-                 Otherwise they will be sorted by in the order for dictionary for which type of it's key
-                 is first in lexicographical order (i.e.: as for '(type(xx))'
+                 Otherwise they will be sorted in the order as for the dictionary with the key name
+                 that comes first in lexicographical order (i.e.: as for '(type(xx))'
         """
         intermediate_key = self.__find_intermediate_key(by_key)
         if intermediate_key and self.__dict__.has_key(intermediate_key):
             return self.__dict__[intermediate_key].keys()
+
+    def __len__(self):
+        """ Returns number of objects in dictionary."""
+        length = 0
+        if self.__dict__.has_key('items_dict'):
+            length = len(self.items_dict)
+        return length
 
     def __find_intermediate_key(self, by_key=None):
         """ Internal method to find the intermediate key for a requested type"""
@@ -187,10 +196,16 @@ class multi_key_dictionary(object):
 
 def test_multintermediate_key_dictionary():    
     m = multi_key_dictionary()
+    assert( len(m) == 0 ), 'expected len(m) == 0'
+    
     m['aa', 12] = 123  # create a value with multiple keys..
+    assert( len(m) == 1 ), 'expected len(m) == 1'
 
     m['something else'] = 'abcd'
+    assert( len(m) == 2 ), 'expected len(m) == 2'
+
     m[23] = 0
+    assert( len(m) == 3 ), 'expected len(m) == 3'
     
     # check if it's possible to read this value back using either of keys
     assert( m['aa'] == 123 ), 'expected m[\'aa\'] == 123'
@@ -205,34 +220,36 @@ def test_multintermediate_key_dictionary():
     assert( m['aa'] == 4 ), 'expected m[\'aa\'] == 4'
     assert( m[12] == 4 ), 'expected m[12] == 4'
 
-
     # now test deletion..
+    curr_len = len(m)
     del m[12]
+    assert( len(m) == curr_len - 1 ), 'expected len(m) == %d' % (curr_len - 1)
 
-    # try removing again 
+    # try again 
     try:
         del m['aa']
         assert(False), 'cant remove again: item m[\'aa\'] should not exist!'
     except KeyError, err:
         pass
 
-    # above doesn't exist 
-    try:
-        k =  m[12]
-        assert(False), 'removed item m[12] should exist!'
-    except KeyError, err:
-        pass
- 
-    # and also for other keys.. 
+    # try to access non-existing 
     try:
         k =  m['aa']
         assert(False), 'removed item m[\'aa\'] should exist!'
     except KeyError, err:
         pass
-    
+
+    # try to access non-existing with a different key 
+    try:
+        k =  m[12]
+        assert(False), 'removed item m[12] should exist!'
+    except KeyError, err:
+        pass
+
+    # prepare for other tests also testing creation of new items
     tst_range = range(10, 40) + range(50, 70)
     for i in tst_range:
-        m[i] = i # will either create new, or update (m[12]), etc.s
+        m[i] = i # will create a dictionary, where keys are same as items
 
     # test iteritems()
     for key, item in m.iteritems(int()):
@@ -244,7 +261,7 @@ def test_multintermediate_key_dictionary():
         expected = tst_range[curr_index_in_range]
         assert (key == expected), 'iterkeys(int): Expected %d, but received %d' % (expected, key)
         curr_index_in_range += 1
-    
+
     #test itervalues()
     curr_index_in_range = 0
     for value in m.itervalues(int()):
@@ -275,5 +292,4 @@ if __name__ == '__main__':
         print 'Error: ', err
     except KeyboardInterrupt:
         print '\n(interrupted by user)'
-
 
