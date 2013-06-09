@@ -62,7 +62,7 @@ class multi_key_dictionary(object):
             in this dictionary. If it does exist, KeyError is raised. """
         if(type(keys) == type(tuple())):        
             num_of_keys_we_have = reduce(lambda x, y: x+y, map(lambda x : self.has_key(x), keys))
-            if num_of_keys_we_have and num_of_keys_we_have != len(keys):
+            if num_of_keys_we_have:
                 raise KeyError(', '.join(str(key) for key in keys))
             first_key = keys[0] # if combination if keys is allowed, simply use the first one
         else:
