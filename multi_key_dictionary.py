@@ -198,7 +198,7 @@ def test_multintermediate_key_dictionary():
     m = multi_key_dictionary()
     assert( len(m) == 0 ), 'expected len(m) == 0'
     
-    m['aa', 12] = 123  # create a value with multiple keys..
+    m['aa', 12, 32, 'mmm'] = 123  # create a value with multiple keys..
     assert( len(m) == 1 ), 'expected len(m) == 1'
 
     m['something else'] = 'abcd'
@@ -210,11 +210,16 @@ def test_multintermediate_key_dictionary():
     # check if it's possible to read this value back using either of keys
     assert( m['aa'] == 123 ), 'expected m[\'aa\'] == 123'
     assert( m[12] == 123 ), 'expected m[12] == 123'
+    assert( m[32] == 123 ), 'expected m[32] == 123'
+    assert( m['mmm'] == 123 ), 'expected m[\'mmm\'] == 123'
+
     
     # now update value and again - confirm it back - using different keys..
     m['aa'] = 45
     assert( m['aa'] == 45 ), 'expected m[\'aa\'] == 45'
     assert( m[12] == 45 ), 'expected m[12] == 45'
+    assert( m[32] == 45 ), 'expected m[32] == 45'
+    assert( m['mmm'] == 45 ), 'expected m[\'mmm\'] == 45'
     
     m[12] = 4
     assert( m['aa'] == 4 ), 'expected m[\'aa\'] == 4'
