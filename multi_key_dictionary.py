@@ -51,24 +51,25 @@ class multi_key_dictionary(object):
     """
     def __getitem__(self, key):
         """ Return the value at index specified as key."""
-        key_type = str(type(key))
-        if (self.__dict__.has_key(key_type) and
-            self.__dict__[key_type].has_key(key)
-#             and self.items_dict and
-#             self.items_dict.has_key(self.__dict__[key_type][key])
-            ):
-            return self.items_dict[self.__dict__[key_type][key]]
+        if self.has_key(key):
+            return self.items_dict[self.__dict__[str(type(key))][key]]
         else:
             raise KeyError(key)
 
     def __setitem__(self, keys, value):
-        """ Set the value at index (or list of indexes) specified as keys."""
-        if(type(keys) == type(tuple())):
-            first_key = keys[0]  # if it's a list, just use the first item
+        """ Set the value at index (or list of indexes) specified as keys.
+            Note, that if multiple key list is specified - none of them can exist already
+            in this dictionary. If it does exist, KeyError is raised. """
+        if(type(keys) == type(tuple())):        
+            num_of_keys_we_have = reduce(lambda x, y: x+y, map(lambda x : self.has_key(x), keys))
+            if num_of_keys_we_have and num_of_keys_we_have != len(keys):
+                raise KeyError(', '.join(str(key) for key in keys))
+            first_key = keys[0] # if combination if keys is allowed, simply use the first one
         else:
             first_key = keys
+
         key_type = str(type(first_key)) # find the intermediate dictionary..
-        if self.__dict__.has_key(key_type) and self.__dict__[key_type].has_key(first_key):
+        if self.has_key(first_key):
             self.items_dict[self.__dict__[key_type][first_key]] = value # .. and update the object if it exists..
         else:
             if(type(keys) != type(tuple())):
@@ -79,8 +80,7 @@ class multi_key_dictionary(object):
     def __delitem__(self, key):
         """ Called to implement deletion of self[key]."""
         key_type = str(type(key))
-        if (self.__dict__.has_key(key_type) and
-            self.__dict__[key_type].has_key(key) and
+        if (self.has_key(key) and
             self.items_dict and
             self.items_dict.has_key(self.__dict__[key_type][key])):
             intermediate_key = self.__dict__[key_type][key]
@@ -101,6 +101,14 @@ class multi_key_dictionary(object):
                         del reference_dict[ref_key]
         else:
             raise KeyError(key)
+
+    def has_key(self, key):
+        """ Returns True if this object contains an item referenced by the key."""
+        key_type = str(type(key))
+        if self.__dict__.has_key(key_type):
+            if self.__dict__[key_type].has_key(key):
+                return True
+        return False
 
     def iteritems(self, by_key=None):
         """ Returns an iterator over the dictionary's (key, value) pairs.
@@ -130,7 +138,7 @@ class multi_key_dictionary(object):
         if intermediate_key and self.__dict__.has_key(intermediate_key):
             for direct_key in self.__dict__[intermediate_key].itervalues():
                 yield self.items_dict[direct_key]
-        
+
     def items(self, by_key=None):
         """ Returns a copy of the dictionary's values.
             @param by_key if specified, values will be sorted in the order for dictionary of it's type.
@@ -201,6 +209,14 @@ def test_multintermediate_key_dictionary():
     m['aa', 12, 32, 'mmm'] = 123  # create a value with multiple keys..
     assert( len(m) == 1 ), 'expected len(m) == 1'
 
+    assert( m.has_key('aa') == True ), 'expected m.has_key(\'aa\') == True'
+    assert( m.has_key('aab') == False ), 'expected m.has_key(\'aab\') == False'
+    
+    assert( m.has_key(12) == True ), 'expected m.has_key(12) == True'
+    assert( m.has_key(13) == False ), 'expected m.has_key(13) == False'
+    assert( m.has_key(32) == True ), 'expected m.has_key(32) == True'
+    
+
     m['something else'] = 'abcd'
     assert( len(m) == 2 ), 'expected len(m) == 2'
 
@@ -224,6 +240,14 @@ def test_multintermediate_key_dictionary():
     m[12] = 4
     assert( m['aa'] == 4 ), 'expected m[\'aa\'] == 4'
     assert( m[12] == 4 ), 'expected m[12] == 4'
+
+    # try accessing / creating new (keys)-> value mapping whilst one of those
+    # keys already maps to a value in this dictionarys
+    try:
+        m['aa', 'bb'] = 'something new'
+        assert(False), 'Should not allow adding multiple-keys when one of keys (\'aa\') already exists!'
+    except KeyError, err:
+        pass
 
     # now test deletion..
     curr_len = len(m)
