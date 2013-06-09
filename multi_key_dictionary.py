@@ -246,7 +246,7 @@ def test_multintermediate_key_dictionary():
     except KeyError, err:
         pass
 
-    # prepare for other tests also testing creation of new items
+    # prepare for other tests (also testing creation of new items)
     tst_range = range(10, 40) + range(50, 70)
     for i in tst_range:
         m[i] = i # will create a dictionary, where keys are same as items
@@ -274,13 +274,6 @@ def test_multintermediate_key_dictionary():
 
     # test keys()
     assert (m.keys(int()) == tst_range), 'm.keys(int()) is not as expected.'
-
-    # test KeyError for non existing keys
-    try:
-        k =  m['323']
-        assert(False), '__getitem__() should throw KeyError exception for non-existing key!'
-    except KeyError, err:
-        pass
 
     print 'All test passed OK!'
 
