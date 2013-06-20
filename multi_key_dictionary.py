@@ -60,11 +60,11 @@ class multi_key_dictionary(object):
         """ Set the value at index (or list of indexes) specified as keys.
             Note, that if multiple key list is specified - none of them can exist already
             in this dictionary. If it does exist, KeyError is raised. """
-        if(type(keys) == type(tuple())):        
+        if(type(keys) in [tuple, list]):        
             num_of_keys_we_have = reduce(lambda x, y: x+y, map(lambda x : self.has_key(x), keys))
             if num_of_keys_we_have:
                 raise KeyError(', '.join(str(key) for key in keys))
-            first_key = keys[0] # if combination if keys is allowed, simply use the first one
+            first_key = keys[0] # combination if keys is allowed, simply use the first one
         else:
             first_key = keys
 
@@ -72,7 +72,7 @@ class multi_key_dictionary(object):
         if self.has_key(first_key):
             self.items_dict[self.__dict__[key_type][first_key]] = value # .. and update the object if it exists..
         else:
-            if(type(keys) != type(tuple())):
+            if(type(keys) not in [tuple, list]):
                 key = keys
                 keys = [keys]
             self.__add_item(value, keys) # .. or create it - if it doesn't
@@ -91,7 +91,7 @@ class multi_key_dictionary(object):
             # remove all references (also pointed by other types of keys)
             # for the item that this key pointed to.
             for name, reference_dict in self.__dict__.iteritems():
-                if(type(name) == type(str()) and name.find('<type') == 0):
+                if(type(name) == str and name.find('<type') == 0):
                     ref_key = None
                     for temp_key, value in reference_dict.iteritems():
                         if value == intermediate_key:
@@ -110,57 +110,98 @@ class multi_key_dictionary(object):
                 return True
         return False
 
-    def iteritems(self, by_key=None):
+    def iteritems(self, key_type=None):
         """ Returns an iterator over the dictionary's (key, value) pairs.
-            @param by_key if specified, iterator for a dictionary of it's type will be used (if available).
-                   Otherwise, iterator will use a dictionary with keys whose type name is first in lexicographical order.
-        """
-        intermediate_key = self.__find_intermediate_key(by_key)
-        if intermediate_key and self.__dict__.has_key(intermediate_key):
-            for key, direct_key in self.__dict__[intermediate_key].iteritems():
-                yield key, self.items_dict[direct_key]
-                
-    def iterkeys(self, by_key=None):
+            @param key_type if specified, iterator will be returning only (key,value) pairs for this type of key.
+                   Otherwise (if not specified) ((keys,...), value) 
+                   i.e. (tuple of keys, values) pairs for all items in this dictionary will be generated."""
+        if key_type is not None:
+            intermediate_key = str(key_type)
+            if self.__dict__.has_key(intermediate_key):
+                for key, direct_key in self.__dict__[intermediate_key].iteritems():
+                    yield key, self.items_dict[direct_key]
+        else:
+            all_keys = []
+            for multi_key_type, value in self.items_dict.iteritems():
+                keys = self.__all_keys_from_intermediate_key(multi_key_type)
+                yield keys, value
+
+    def iterkeys(self, key_type=None):
         """ Returns an iterator over the dictionary's keys.
-            @param by_key if specified, iterator for a dictionary of it's type will be used (if available).
-                   Otherwise, iterator will use a dictionary with keys whose type name is first in lexicographical order.
-        """
-        intermediate_key = self.__find_intermediate_key(by_key)
-        if intermediate_key and self.__dict__.has_key(intermediate_key):
-            return self.__dict__[intermediate_key].iterkeys()
+            @param key_type if specified, iterator for a dictionary of this type will be used. 
+                   Otherwise (if not specified) tuples containing all (multiple) keys
+                   for this dictionary will be generated."""
+        if(key_type is not None):
+            intermediate_key = str(key_type)
+            if self.__dict__.has_key(intermediate_key):
+                for key in self.__dict__[intermediate_key].iterkeys():
+                    yield key            
+        else:
+            for multi_key_type in self.items_dict.keys():
+                yield self.__all_keys_from_intermediate_key(multi_key_type)
 
-    def itervalues(self, by_key=None):
+    def itervalues(self, key_type=None):
         """ Returns an iterator over the dictionary's values.
-            @param by_key if specified, iterator for a dictionary of it's type will be used (if available).
-                   Otherwise, iterator will use a dictionary with keys whose type name is first in lexicographical order.
-        """
-        intermediate_key = self.__find_intermediate_key(by_key)        
-        if intermediate_key and self.__dict__.has_key(intermediate_key):
-            for direct_key in self.__dict__[intermediate_key].itervalues():
-                yield self.items_dict[direct_key]
+            @param key_type if specified, iterator will be returning only values pointed by keys of this type.
+                   Otherwise (if not specified) all values in this dictinary will be generated."""
+        if(key_type is not None):
+            intermediate_key = str(key_type)
+            if self.__dict__.has_key(intermediate_key):
+                for direct_key in self.__dict__[intermediate_key].itervalues():
+                    yield self.items_dict[direct_key]
+        else:
+            for value in self.items_dict.itervalues():
+                yield value
 
-    def items(self, by_key=None):
-        """ Returns a copy of the dictionary's values.
-            @param by_key if specified, values will be sorted in the order for dictionary of it's type.
-                 Otherwise they will be sorted in the order as for the dictionary with the key name
-                 that comes first in lexicographical order (i.e.: as for '(type(xx))'
-        """
+    def items(self, key_type=None):
+        """ Return a copy of the dictionary's list of (key, value) pairs.
+            @param key_type if specified, (key, value) pairs for keys of this type will be returned.
+                 Otherwise list of pairs: ((keys), value) for all items will be returned."""
         all_items = []
-        intermediate_key = self.__find_intermediate_key(by_key)
-        if intermediate_key and self.__dict__.has_key(intermediate_key):
-            for direct_key in self.__dict__[intermediate_key].itervalues():
-                all_items.append(self.items_dict[direct_key])
+        if key_type is not None:
+            keys_used_so_far = set()
+            direct_key = str(key_type)
+            if self.__dict__.has_key(direct_key):
+                for key, intermediate_key in self.__dict__[direct_key].iteritems():
+                    if not intermediate_key in keys_used_so_far:
+                        keys_used_so_far.add(intermediate_key)
+                        all_items.append((key, self.items_dict[intermediate_key]))
+        else:
+            for multi_key_type, value in self.items_dict.iteritems():
+                all_items.append((self.__all_keys_from_intermediate_key(multi_key_type), value))
         return all_items
 
-    def keys(self, by_key=None):
+    def keys(self, key_type=None):
         """ Returns a copy of the dictionary's keys.
-            @param by_key if specified, keys will be sorted in the order for dictionary of it's type.
-                 Otherwise they will be sorted in the order as for the dictionary with the key name
-                 that comes first in lexicographical order (i.e.: as for '(type(xx))'
-        """
-        intermediate_key = self.__find_intermediate_key(by_key)
-        if intermediate_key and self.__dict__.has_key(intermediate_key):
-            return self.__dict__[intermediate_key].keys()
+            @param key_type if specified, only keys for this type will be returned.
+                 Otherwise list of tuples containing all (multiple) keys will be returned."""
+        if key_type is not None:
+            intermediate_key = str(key_type)
+            if self.__dict__.has_key(intermediate_key):
+                return self.__dict__[intermediate_key].keys()
+        else:
+            # keys will contain lists of keys
+            all_keys = []
+            for multi_key_type in self.items_dict.keys():
+                all_keys.append(self.__all_keys_from_intermediate_key(multi_key_type))
+            return all_keys
+
+    def values(self, key_type=None):
+        """ Returns a copy of the dictionary's values.
+            @param key_type if specified, only values pointed by keys of this type will be returned.
+                 Otherwise list of all values contained in this dictionary will be returned."""
+        if(key_type is not None):
+            all_items = []
+            keys_used = set()
+            direct_key = str(key_type)
+            if self.__dict__.has_key(direct_key):
+                for intermediate_key in self.__dict__[direct_key].itervalues():
+                    if not intermediate_key in keys_used:
+                        all_items.append(self.items_dict[intermediate_key])
+                        keys_used.add(intermediate_key)
+            return all_items
+        else:
+            return self.items_dict.values()
 
     def __len__(self):
         """ Returns number of objects in dictionary."""
@@ -169,24 +210,13 @@ class multi_key_dictionary(object):
             length = len(self.items_dict)
         return length
 
-    def __find_intermediate_key(self, by_key=None):
-        """ Internal method to find the intermediate key for a requested type"""
-        intermediate_key = None        
-        if(by_key is not None):
-            intermediate_key = str(type(by_key))
-        else:
-            for attr in self.__dict__.iteritems():
-                if(type(attr[0]) == type(str()) and attr[0].find('<type') == 0):
-                    intermediate_key = attr[0] # just use the first one available
-                    break
-        return intermediate_key
-
     def __add_item(self, item, keys=None):        
         """ Internal method to add an item to the multi-key dictionary"""
         if(not keys or not len(keys)):
             raise Exception('Error in %s.__add_item(%s, keys=tuple/list of items): need to specify a tuple/list containing at least one key!'
                             % (self.__class__.__name__, str(item)))
-        direct_key = '_'.join([str(key) for key in keys]) # joined values of keys will be used as a direct key        
+        # joined values of keys will be used as a direct key. We'll encode type and key too..
+        direct_key = '_'.join([key.__class__.__name__+':' +str(key) for key in keys])        
         for key in keys:
             key_type = str(type(key))
 
@@ -200,14 +230,26 @@ class multi_key_dictionary(object):
                 self.items_dict = dict()            
             self.items_dict[direct_key] = item
 
+    def __all_keys_from_intermediate_key(self, intermediate_key):
+        """ Internal method to find the tuple containing multiple keys"""
+        keys = []
+        for type_value in intermediate_key.split('_'):
+            type_name, key_val = type_value.split(':')
+            key_type = eval(type_name)
+            keys.append(key_type(key_val))
+        return(tuple(keys))
 
 
-def test_multintermediate_key_dictionary():    
+
+def test_multi_key_dictionary():    
     m = multi_key_dictionary()
     assert( len(m) == 0 ), 'expected len(m) == 0'
     
+    all_keys = list()
+    
     m['aa', 12, 32, 'mmm'] = 123  # create a value with multiple keys..
     assert( len(m) == 1 ), 'expected len(m) == 1'
+    all_keys.append(('aa', 12, 32, 'mmm')) # store it for later
 
     assert( m.has_key('aa') == True ), 'expected m.has_key(\'aa\') == True'
     assert( m.has_key('aab') == False ), 'expected m.has_key(\'aab\') == False'
@@ -215,21 +257,21 @@ def test_multintermediate_key_dictionary():
     assert( m.has_key(12) == True ), 'expected m.has_key(12) == True'
     assert( m.has_key(13) == False ), 'expected m.has_key(13) == False'
     assert( m.has_key(32) == True ), 'expected m.has_key(32) == True'
-    
 
     m['something else'] = 'abcd'
     assert( len(m) == 2 ), 'expected len(m) == 2'
+    all_keys.append(('something else',)) # store for later
 
     m[23] = 0
     assert( len(m) == 3 ), 'expected len(m) == 3'
-    
+    all_keys.append((23,)) # store for later
+
     # check if it's possible to read this value back using either of keys
     assert( m['aa'] == 123 ), 'expected m[\'aa\'] == 123'
     assert( m[12] == 123 ), 'expected m[12] == 123'
     assert( m[32] == 123 ), 'expected m[32] == 123'
     assert( m['mmm'] == 123 ), 'expected m[\'mmm\'] == 123'
 
-    
     # now update value and again - confirm it back - using different keys..
     m['aa'] = 45
     assert( m['aa'] == 45 ), 'expected m[\'aa\'] == 45'
@@ -241,13 +283,64 @@ def test_multintermediate_key_dictionary():
     assert( m['aa'] == 4 ), 'expected m[\'aa\'] == 4'
     assert( m[12] == 4 ), 'expected m[12] == 4'
 
-    # try accessing / creating new (keys)-> value mapping whilst one of those
+    # try accessing / creating new (keys)-> value mapping whilst one of these
     # keys already maps to a value in this dictionarys
     try:
         m['aa', 'bb'] = 'something new'
         assert(False), 'Should not allow adding multiple-keys when one of keys (\'aa\') already exists!'
     except KeyError, err:
         pass
+
+    # now check if we can get all possible keys (formed in a list of tuples
+    # each tuple containing all keys)
+    assert(sorted(m.keys()) == sorted(all_keys)), 'unexpected values from m.keys(), got:\n%s\n expected:\n%s)' %(sorted(m.keys()), sorted(all_keys)) 
+
+    # check default iteritems (which will unpack tupe with key(s) and value)
+    num_of_elements = 0
+    for keys, value in m.iteritems():
+        num_of_elements += 1
+        assert(keys in all_keys), 'm.iteritems(): unexpected keys: %s' % (keys)
+        assert(m[keys[0]] == value), 'm.iteritems(): unexpected value: %s (keys: %s)' % (value, keys)
+    assert(num_of_elements > 0), 'm.iteritems() returned generator that did not produce anything'
+
+    # test default iterkeys()
+    num_of_elements = 0
+    for keys in m.iterkeys():
+        num_of_elements += 1
+        assert(keys in all_keys), 'm.iterkeys(): unexpected keys: %s' % (keys)
+    assert(num_of_elements > 0), 'm.iterkeys() returned generator that did not produce anything'
+
+    # test values for different types of keys()
+    values_for_int_keys = sorted([0, 4])
+    assert (sorted(m.values(int)) == values_for_int_keys), 'm.values(int) are %s, but expected: %s.' % (sorted(m.values(int)), 
+                                                                                                          values_for_int_keys)
+    values_for_str_keys = sorted([4, 'abcd'])
+    assert (sorted(m.values(str)) == values_for_str_keys), 'm.values(str) are %s, but expected: %s.' % (sorted(m.values(str)), 
+                                                                                                          values_for_str_keys)
+    current_values = sorted([0, 4, 'abcd']) # default (should give all values)
+    assert (sorted(m.values()) == current_values), 'm.values() are %s, but expected: %s.' % (sorted(m.values()),
+                                                                                                    current_values)
+
+    #test itervalues() (default) - should return all values. (Itervalues for other types are tested below)
+    vals = []
+    for value in m.itervalues():
+        vals.append(value)
+    assert (current_values == sorted(vals)), 'itervalues(): expected %s, but collected %s' % (current_values, sorted(vals))
+
+    #test items(int)
+    items_for_int = sorted([(32, 4), (23, 0)])
+    assert (items_for_int == sorted(m.items(int))), 'items(int): expected %s, but collected %s' % (items_for_int, 
+                                                                                                     sorted(m.items(int)))
+
+    # test items(str)
+    items_for_str = sorted([('aa', 4), ('something else', 'abcd')])
+    assert (items_for_str == sorted(m.items(str))), 'items(str): expected %s, but collected %s' % (items_for_str, 
+                                                                                                     sorted(m.items(str)))
+
+    # test items() (default - all items)
+    all_items = sorted([(('aa', 12, 32, 'mmm'), 4), (('something else',), 'abcd'), ((23,), 0)])
+    assert (all_items == sorted(m.items())), 'items() (all items): expected %s, but collected %s' % (all_items, 
+                                                                                                     sorted(m.items()))
 
     # now test deletion..
     curr_len = len(m)
@@ -281,35 +374,41 @@ def test_multintermediate_key_dictionary():
         m[i] = i # will create a dictionary, where keys are same as items
 
     # test iteritems()
-    for key, item in m.iteritems(int()):
-        assert(key == item), 'iteritems(int()): Expected %d, but received %d' % (key, item)
+    for key, value in m.iteritems(int):
+        assert(key == value), 'iteritems(int): expected %d, but received %d' % (key, value)
 
     # test iterkeys()
+    num_of_elements = 0
     curr_index_in_range = 0
-    for key in m.iterkeys(int()):
+    for key in m.iterkeys(int):
         expected = tst_range[curr_index_in_range]
-        assert (key == expected), 'iterkeys(int): Expected %d, but received %d' % (expected, key)
+        assert (key == expected), 'iterkeys(int): expected %d, but received %d' % (expected, key)
         curr_index_in_range += 1
+        num_of_elements += 1
+    assert(num_of_elements > 0), 'm.iteritems(int) returned generator that did not produce anything'
 
-    #test itervalues()
+    #test itervalues(int)
     curr_index_in_range = 0
-    for value in m.itervalues(int()):
+    num_of_elements = 0
+    for value in m.itervalues(int):
         expected = tst_range[curr_index_in_range]
-        assert (value == expected), 'itervalues(int): Expected %d, but received %d' % (expected, value)
+        assert (value == expected), 'itervalues(int): expected %d, but received %d' % (expected, value)
         curr_index_in_range += 1
+        num_of_elements += 1
+    assert(num_of_elements > 0), 'm.itervalues(int) returned generator that did not produce anything'
 
-    # test items()
-    assert (m.items(int()) == tst_range), 'm.items(int()) is not as expected.'
+    # test values(int)
+    assert (m.values(int) == tst_range), 'm.values(int) is not as expected.'
 
     # test keys()
-    assert (m.keys(int()) == tst_range), 'm.keys(int()) is not as expected.'
+    assert (m.keys(int) == tst_range), 'm.keys(int) is not as expected.'
 
     print 'All test passed OK!'
 
 
 if __name__ == '__main__':
     try:
-        test_multintermediate_key_dictionary()
+        test_multi_key_dictionary()
     except Exception, err:
         print 'Error: ', err
     except KeyboardInterrupt:
