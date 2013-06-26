@@ -29,14 +29,23 @@ DEALINGS IN THE SOFTWARE.
 
 class multi_key_dict(object):
     """ Purpose of this type is to provie a multi-key dictionary.
-    Such a dictionary has a similar interface to the standard dictionary, but allows
-    accessing / iterating items using multiple keys, i.e. it provices mapping from
-    different types of keys (and also different keys of the same type) to the same value. 
-    For example:
-    
+    This kind of dictionary has a similar interface to the standard dictionary, and indeed if used 
+    with single key key elements - it's behaviour is the same as for a standard dict().
+
+    However it also allows for creation elements using multiple keys (using tuples/lists).
+    Such elements can be accessed using either of those keys (e.g read/updated/deleted).
+    Dictionary provides also extended interface for iterating over items and keys by the key type.
+    This can be useful e.g.: when creating dictionaries with (index,name) allowing to iterate over
+    items using either: names or indexes. It can be useful for many many other similar use-cases,
+    and there is no limit to the number of keys used to map to the value.
+
+    There are also methods to find other keys mapping to the same value as the specified keys etc.
+    Refer to examples and test code to see it in action.
+
+    simple example:
         k = multi_key_dict()
         k[100] = 'hundred'  # add item to the dictionary (as for normal dictionary)
-        
+
         # but also:
         # below creates entry with two possible key types: int and str, 
         # mapping all keys to the assigned value
@@ -139,7 +148,6 @@ class multi_key_dict(object):
                     else:
                         yield key, self.items_dict[intermediate_key]
         else:
-            all_keys = []
             for multi_key_type, value in self.items_dict.iteritems():
                 keys = self.__all_keys_from_intermediate_key(multi_key_type)
                 yield keys, value
@@ -456,6 +464,7 @@ if __name__ == '__main__':
         test_multi_key_dict()
     except Exception, err:
         print 'Error: ', err
+        raise err
     except KeyboardInterrupt:
         print '\n(interrupted by user)'
 
