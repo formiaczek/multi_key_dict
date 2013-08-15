@@ -1,0 +1,3 @@
+setup.py bdist_wininst sdist  = to build it
+
+python setup.py register bdist bdist_wininst upload   = uploading
