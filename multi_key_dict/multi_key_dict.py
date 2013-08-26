@@ -276,7 +276,12 @@ class multi_key_dict(object):
             keys.append(key_type(key_val))
         return(tuple(keys))
 
-
+    def get(self, key, default=None):
+        """ Return the value at index specified as key."""
+        if self.has_key(key):
+            return self.items_dict[self.__dict__[str(type(key))][key]]
+        else:
+            return default
 
 def test_multi_key_dict():    
     m = multi_key_dict()
@@ -455,6 +460,12 @@ def test_multi_key_dict():
 
     # test keys()
     assert (m.keys(int) == tst_range), 'm.keys(int) is not as expected.'
+
+    # test get functionality of basic dictionaries
+    m['CanIGet'] = 'yes'
+    assert (m.get('CanIGet') == 'yes')
+    assert (m.get('ICantGet') == None)
+    assert (m.get('ICantGet', "Ok") == "Ok")
 
     print 'All test passed OK!'
 
