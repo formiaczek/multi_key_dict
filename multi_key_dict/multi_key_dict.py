@@ -50,7 +50,7 @@ class multi_key_dict(object):
         # below creates entry with two possible key types: int and str, 
         # mapping all keys to the assigned value
         k[1000, 'kilo', 'k'] = 'kilo (x1000)'
-        print k[100]   # will print 'kilo (x1000)'
+        print k[1000]   # will print 'kilo (x1000)'
         print k['k']  # will also print 'kilo (x1000)'
         
         # the same way objects can be updated, and if an object is updated using one key, the new value will
@@ -67,12 +67,32 @@ class multi_key_dict(object):
 
     def __setitem__(self, keys, value):
         """ Set the value at index (or list of indexes) specified as keys.
-            Note, that if multiple key list is specified - none of them can exist already
-            in this dictionary. If it does exist, KeyError is raised. """
-        if(type(keys) in [tuple, list]):        
+            Note, that if multiple key list is specified, either: 
+              - none of keys should map to an existing item already (item creation), or 
+              - all of keys should map to exactly the same item (as previously created)
+                  (item update)
+            If this is not the case - KeyError is raised. """
+        if(type(keys) in [tuple, list]):
             num_of_keys_we_have = reduce(lambda x, y: x+y, map(lambda x : self.has_key(x), keys))
             if num_of_keys_we_have:
-                raise KeyError(', '.join(str(key) for key in keys))
+                all_select_same_item = True
+                for key in keys:
+                    direct_key = None
+                    try:
+                        if direct_key is None:
+                            direct_key = self.items_dict[key]
+                        else:
+                            new = self.items_dict[key]
+                            if new != direct_key:
+                                all_select_same_item = False
+                                break
+                    except:
+                        all_select_same_item = False
+                        break;
+
+                if num_of_keys_we_have < len(keys) and not all_select_same_item:
+                    raise KeyError(', '.join(str(key) for key in keys))
+
             first_key = keys[0] # combination if keys is allowed, simply use the first one
         else:
             first_key = keys
@@ -455,6 +475,25 @@ def test_multi_key_dict():
 
     # test keys()
     assert (m.keys(int) == tst_range), 'm.keys(int) is not as expected.'
+
+
+    # test setitem with multiple keys
+    m['xy', 999, 'abcd'] = 'teststr'
+    try:
+        m['xy', 998] = 'otherstr'
+        assert(False), 'creating / updating m[\'xy\', 998] should fail!'
+    except KeyError, err:
+        pass
+
+    m['xy', 999] = 'otherstr'
+    assert (m['xy']  == 'otherstr'), 'm[\'xy\'] is not as expected.'
+    assert (m[999]   == 'otherstr'), 'm[999] is not as expected.'
+    assert (m['abcd'] == 'otherstr'), 'm[\'abcd\'] is not as expected.'
+    
+    m['abcd', 'xy']   =  'another'
+    assert (m['xy']  == 'another'), 'm[\'xy\'] is not == \'another\'.'
+    assert (m[999]   == 'another'), 'm[999] is not == \'another\''
+    assert (m['abcd'] == 'another'), 'm[\'abcd\'] is not  == \'another\'.'
 
     print 'All test passed OK!'
 
