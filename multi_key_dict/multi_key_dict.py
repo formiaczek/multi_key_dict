@@ -150,7 +150,6 @@ class multi_key_dict(object):
             if not including_current:
                 other_keys.remove(key)
         return other_keys
-        
 
     def iteritems(self, key_type=None, return_all_keys=False):
         """ Returns an iterator over the dictionary's (key, value) pairs.
@@ -296,7 +295,12 @@ class multi_key_dict(object):
             keys.append(key_type(key_val))
         return(tuple(keys))
 
-
+    def get(self, key, default=None):
+        """ Return the value at index specified as key."""
+        if self.has_key(key):
+            return self.items_dict[self.__dict__[str(type(key))][key]]
+        else:
+            return default
 
 def test_multi_key_dict():    
     m = multi_key_dict()
@@ -476,7 +480,6 @@ def test_multi_key_dict():
     # test keys()
     assert (m.keys(int) == tst_range), 'm.keys(int) is not as expected.'
 
-
     # test setitem with multiple keys
     m['xy', 999, 'abcd'] = 'teststr'
     try:
@@ -494,6 +497,12 @@ def test_multi_key_dict():
     assert (m['xy']  == 'another'), 'm[\'xy\'] is not == \'another\'.'
     assert (m[999]   == 'another'), 'm[999] is not == \'another\''
     assert (m['abcd'] == 'another'), 'm[\'abcd\'] is not  == \'another\'.'
+
+    # test get functionality of basic dictionaries
+    m['CanIGet'] = 'yes'
+    assert (m.get('CanIGet') == 'yes')
+    assert (m.get('ICantGet') == None)
+    assert (m.get('ICantGet', "Ok") == "Ok")
 
     print 'All test passed OK!'
 
