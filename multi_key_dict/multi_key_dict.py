@@ -76,21 +76,22 @@ class multi_key_dict(object):
             num_of_keys_we_have = reduce(lambda x, y: x+y, map(lambda x : self.has_key(x), keys))
             if num_of_keys_we_have:
                 all_select_same_item = True
+                direct_key = None
                 for key in keys:
-                    direct_key = None
+                    key_type = str(type(key))
                     try:
-                        if direct_key is None:
-                            direct_key = self.items_dict[key]
+                        if not direct_key:
+                            direct_key = self.__dict__[key_type][key]
                         else:
-                            new = self.items_dict[key]
+                            new = self.__dict__[key_type][key]
                             if new != direct_key:
                                 all_select_same_item = False
                                 break
-                    except:
+                    except Exception, err:
                         all_select_same_item = False
                         break;
 
-                if num_of_keys_we_have < len(keys) and not all_select_same_item:
+                if num_of_keys_we_have <= len(keys) and not all_select_same_item:
                     raise KeyError(', '.join(str(key) for key in keys))
 
             first_key = keys[0] # combination if keys is allowed, simply use the first one
@@ -485,6 +486,14 @@ def test_multi_key_dict():
     try:
         m['xy', 998] = 'otherstr'
         assert(False), 'creating / updating m[\'xy\', 998] should fail!'
+    except KeyError, err:
+        pass
+
+    # test setitem with multiple keys
+    m['cd'] = 'somethingelse'
+    try:
+        m['cd', 999] = 'otherstr'
+        assert(False), 'creating / updating m[\'cd\', 999] should fail!'
     except KeyError, err:
         pass
 
