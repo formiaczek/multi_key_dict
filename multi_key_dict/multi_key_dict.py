@@ -91,7 +91,7 @@ class multi_key_dict(object):
                         all_select_same_item = False
                         break;
 
-                if num_of_keys_we_have <= len(keys) and not all_select_same_item:
+                if not all_select_same_item:
                     raise KeyError(', '.join(str(key) for key in keys))
 
             first_key = keys[0] # combination if keys is allowed, simply use the first one
