@@ -1,4 +1,5 @@
 *.pyc
 *.exe
 */dist/*
+*/build/*
 MANIFEST

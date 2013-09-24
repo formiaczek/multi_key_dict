@@ -290,8 +290,9 @@ class multi_key_dict(object):
     def __all_keys_from_intermediate_key(self, intermediate_key):
         """ Internal method to find the tuple containing multiple keys"""
         keys = []
+
         for type_value in intermediate_key.split('`'):
-            type_name, key_val = type_value.split(':')
+            type_name, key_val = type_value.split(':', 1)
             key_type = eval(type_name)
             keys.append(key_type(key_val))
         return(tuple(keys))
@@ -303,7 +304,18 @@ class multi_key_dict(object):
         else:
             return default
 
-def test_multi_key_dict():    
+    def __str__(self):
+        items = []
+        for (keys, value) in self.items():
+            value_str = str(value)
+            if(type(value) == str):
+                value_str = '\'%s\'' % format(value_str)
+            items.append('(%s): %s' % (', '.join([str(k) for k in keys]),
+                                     value_str))
+        dict_str = '{%s}' % ( ', '.join(items))
+        return dict_str
+
+def test_multi_key_dict():
     m = multi_key_dict()
     assert( len(m) == 0 ), 'expected len(m) == 0'
     all_keys = list()
@@ -347,10 +359,13 @@ def test_multi_key_dict():
     assert( m[32] == 45 ), 'expected m[32] == 45'
     assert( m['mmm'] == 45 ), 'expected m[\'mmm\'] == 45'
     
-    m[12] = 4
-    assert( m['aa'] == 4 ), 'expected m[\'aa\'] == 4'
-    assert( m[12] == 4 ), 'expected m[12] == 4'
+    m[12] = '4'
+    assert( m['aa'] == '4' ), 'expected m[\'aa\'] == \'4\''
+    assert( m[12] == '4' ), 'expected m[12] == \'4\''
 
+    m_str = '{(23): 0, (aa, 12, 32, mmm): \'4\', (something else): \'abcd\'}'
+    assert (str(m) == m_str), 'str(m) is not %s ' % m_str
+    
     # try accessing / creating new (keys)-> value mapping whilst one of these
     # keys already maps to a value in this dictionarys
     try:
@@ -390,13 +405,13 @@ def test_multi_key_dict():
 
 
     # test values for different types of keys()
-    values_for_int_keys = sorted([0, 4])
+    values_for_int_keys = sorted([0, '4'])
     assert (sorted(m.values(int)) == values_for_int_keys), 'm.values(int) are %s, but expected: %s.' % (sorted(m.values(int)), 
                                                                                                           values_for_int_keys)
-    values_for_str_keys = sorted([4, 'abcd'])
+    values_for_str_keys = sorted(['4', 'abcd'])
     assert (sorted(m.values(str)) == values_for_str_keys), 'm.values(str) are %s, but expected: %s.' % (sorted(m.values(str)), 
                                                                                                           values_for_str_keys)
-    current_values = sorted([0, 4, 'abcd']) # default (should give all values)
+    current_values = sorted([0, '4', 'abcd']) # default (should give all values)
     assert (sorted(m.values()) == current_values), 'm.values() are %s, but expected: %s.' % (sorted(m.values()),
                                                                                                     current_values)
 
@@ -407,16 +422,16 @@ def test_multi_key_dict():
     assert (current_values == sorted(vals)), 'itervalues(): expected %s, but collected %s' % (current_values, sorted(vals))
 
     #test items(int)
-    items_for_int = sorted([(32, 4), (23, 0)])
+    items_for_int = sorted([(32, '4'), (23, 0)])
     assert (items_for_int == sorted(m.items(int))), 'items(int): expected %s, but collected %s' % (items_for_int, 
                                                                                                      sorted(m.items(int)))
 
     # test items(str)
-    items_for_str = sorted([('aa', 4), ('something else', 'abcd')])
+    items_for_str = sorted([('aa', '4'), ('something else', 'abcd')])
     assert (items_for_str == sorted(m.items(str))), 'items(str): expected %s, but collected %s' % (items_for_str, 
                                                                                                      sorted(m.items(str)))
     # test items() (default - all items)
-    all_items = sorted([(('aa', 12, 32, 'mmm'), 4), (('something else',), 'abcd'), ((23,), 0)])
+    all_items = sorted([(('aa', 12, 32, 'mmm'), '4'), (('something else',), 'abcd'), ((23,), 0)])
     assert (all_items == sorted(m.items())), 'items() (all items): expected %s, but collected %s' % (all_items, 
                                                                                                      sorted(m.items()))
 
@@ -513,6 +528,12 @@ def test_multi_key_dict():
     assert (m.get('ICantGet') == None)
     assert (m.get('ICantGet', "Ok") == "Ok")
 
+    k = multi_key_dict()
+    k['1:12', 1] = 'key_has_:'
+    k.items() # should not cause any problems to have : in key
+    assert (k[1] == 'key_has_:'), 'k[1] is not equal to \'abc:def:ghi\''
+    
+    
     print 'All test passed OK!'
 
 
