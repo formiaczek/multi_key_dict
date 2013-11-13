@@ -290,11 +290,9 @@ class multi_key_dict(object):
     def __all_keys_from_intermediate_key(self, intermediate_key):
         """ Internal method to find the tuple containing multiple keys"""
         keys = []
-
-        for type_value in intermediate_key.split('`'):
-            type_name, key_val = type_value.split(':', 1)
-            key_type = eval(type_name)
-            keys.append(key_type(key_val))
+        for key, val in self.__dict__.items():
+            if type(val) == dict:
+                keys.extend([k for k, v in val.items() if v == intermediate_key])
         return(tuple(keys))
 
     def get(self, key, default=None):
@@ -306,12 +304,13 @@ class multi_key_dict(object):
 
     def __str__(self):
         items = []
-        for (keys, value) in self.items():
-            value_str = str(value)
-            if(type(value) == str):
-                value_str = '\'%s\'' % format(value_str)
-            items.append('(%s): %s' % (', '.join([str(k) for k in keys]),
-                                     value_str))
+        if hasattr(self, 'items_dict'):
+            for (keys, value) in self.items():
+                value_str = str(value)
+                if(type(value) == str):
+                    value_str = '\'%s\'' % format(value_str)
+                items.append('(%s): %s' % (', '.join([str(k) for k in keys]),
+                                         value_str))
         dict_str = '{%s}' % ( ', '.join(items))
         return dict_str
 
@@ -322,14 +321,14 @@ def test_multi_key_dict():
 
     m['aa', 12, 32, 'mmm'] = 123  # create a value with multiple keys..
     assert( len(m) == 1 ), 'expected len(m) == 1'
-    all_keys.append(('aa', 12, 32, 'mmm')) # store it for later
+    all_keys.append(('aa', 'mmm', 32, 12)) # store it for later
 
     # try retrieving other keys mapped to the same value using one of them
-    assert(m.get_other_keys('aa') == [12, 32, 'mmm']), 'get_other_keys(\'aa\'): %s other than expected: %s ' % (m.get_other_keys('aa'), 
-                                                                                                                       [12, 32, 'mmm'])
+    assert(m.get_other_keys('aa') == ['mmm', 32, 12]), 'get_other_keys(\'aa\'): %s other than expected: %s ' % (m.get_other_keys('aa'), 
+                                                                                                                       ['mmm', 32, 12])
     # try retrieving other keys mapped to the same value using one of them: also include this key
-    assert(m.get_other_keys(32, True) == ['aa', 12, 32, 'mmm']), 'get_other_keys(32): %s other than expected: %s ' % (m.get_other_keys(32, True), 
-                                                                                                                       ['aa', 12, 32, 'mmm'])
+    assert(m.get_other_keys(32, True) == ['aa', 'mmm', 32, 12]), 'get_other_keys(32): %s other than expected: %s ' % (m.get_other_keys(32, True), 
+                                                                                                                       ['aa', 'mmm', 32, 12])
 
     assert( m.has_key('aa') == True ), 'expected m.has_key(\'aa\') == True'
     assert( m.has_key('aab') == False ), 'expected m.has_key(\'aab\') == False'
@@ -363,9 +362,9 @@ def test_multi_key_dict():
     assert( m['aa'] == '4' ), 'expected m[\'aa\'] == \'4\''
     assert( m[12] == '4' ), 'expected m[12] == \'4\''
 
-    m_str = '{(23): 0, (aa, 12, 32, mmm): \'4\', (something else): \'abcd\'}'
-    assert (str(m) == m_str), 'str(m) is not %s ' % m_str
-    
+    m_str = '{(23): 0, (aa, mmm, 32, 12): \'4\', (something else): \'abcd\'}' 
+    assert (str(m) == m_str), 'str(m) \'%s\' is not %s ' % (str(m), m_str)
+
     # try accessing / creating new (keys)-> value mapping whilst one of these
     # keys already maps to a value in this dictionarys
     try:
@@ -431,7 +430,7 @@ def test_multi_key_dict():
     assert (items_for_str == sorted(m.items(str))), 'items(str): expected %s, but collected %s' % (items_for_str, 
                                                                                                      sorted(m.items(str)))
     # test items() (default - all items)
-    all_items = sorted([(('aa', 12, 32, 'mmm'), '4'), (('something else',), 'abcd'), ((23,), 0)])
+    all_items = sorted([(('aa', 'mmm', 32, 12), '4'), (('something else',), 'abcd'), ((23,), 0)])
     assert (all_items == sorted(m.items())), 'items() (all items): expected %s, but collected %s' % (all_items, 
                                                                                                      sorted(m.items()))
 
@@ -532,8 +531,27 @@ def test_multi_key_dict():
     k['1:12', 1] = 'key_has_:'
     k.items() # should not cause any problems to have : in key
     assert (k[1] == 'key_has_:'), 'k[1] is not equal to \'abc:def:ghi\''
+
+    import datetime
+    n = datetime.datetime.now()
+    l = multi_key_dict()
+    l[n] = 'now' # use datetime obj as a key
     
+    #test keys..
+    r = l.keys()[0]
+    assert(r == (n,)), 'Expected {0} (tuple with all key types) as a 1st key, but got: {1}'.format((n,), r)
+
+    r = l.keys(datetime.datetime)[0]
+    assert(r == n), 'Expected {0} as a key, but got: {1}'.format(n, r)
+    assert(l.values() == ['now']), 'Expected values: {0}, but got: {1}'.format(l.values(), 'now')
     
+    # test items..
+    exp_items = [((n,), 'now')]
+    r = l.items()
+    assert(r == exp_items), 'Expected for items(): tuple of keys: {0}, but got: {1}'.format(r, exp_items) 
+    assert(exp_items[0][1] == 'now'), 'Expected for items(): value: {0}, but got: {1}'.format('now', 
+                                                                                              exp_items[0][1])
+
     print 'All test passed OK!'
 
 
