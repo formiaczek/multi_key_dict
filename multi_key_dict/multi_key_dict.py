@@ -310,17 +310,18 @@ class multi_key_dict(object):
 
     def __str__(self):
         items = []
+        str_repr = lambda x: '\'%s\'' % x if type(x) == str else str(x)
         if hasattr(self, 'items_dict'):
             for (keys, value) in self.items():
-                value_str = str(value)
-                if(type(value) == str):
-                    value_str = '\'%s\'' % format(value_str)
-                items.append('(%s): %s' % (', '.join([str(k) for k in keys]),
-                                         value_str))
+                items.append('(%s): %s' % (', '.join([str_repr(k) for k in keys]),
+                                           str_repr(value)))
         dict_str = '{%s}' % ( ', '.join(items))
         return dict_str
 
+
 def test_multi_key_dict():
+    contains_all = lambda cont, in_items: not (False in [c in cont for c in in_items])
+
     m = multi_key_dict()
     assert( len(m) == 0 ), 'expected len(m) == 0'
     all_keys = list()
@@ -330,11 +331,12 @@ def test_multi_key_dict():
     all_keys.append(('aa', 'mmm', 32, 12)) # store it for later
 
     # try retrieving other keys mapped to the same value using one of them
-    assert(m.get_other_keys('aa') == ['mmm', 32, 12]), 'get_other_keys(\'aa\'): %s other than expected: %s ' % (m.get_other_keys('aa'), 
-                                                                                                                       ['mmm', 32, 12])
+    res = m.get_other_keys('aa')
+    assert(contains_all(res, ['mmm', 32, 12])), 'get_other_keys(\'aa\'): %s other than expected: %s ' % (m, ['mmm', 32, 12])
+    
     # try retrieving other keys mapped to the same value using one of them: also include this key
-    assert(m.get_other_keys(32, True) == ['aa', 'mmm', 32, 12]), 'get_other_keys(32): %s other than expected: %s ' % (m.get_other_keys(32, True), 
-                                                                                                                       ['aa', 'mmm', 32, 12])
+    res = m.get_other_keys(32, True)
+    assert(contains_all(res, ['aa', 'mmm', 32, 12])), 'get_other_keys(32): %s other than expected: %s ' % (res, ['aa', 'mmm', 32, 12])
 
     assert( m.has_key('aa') == True ), 'expected m.has_key(\'aa\') == True'
     assert( m.has_key('aab') == False ), 'expected m.has_key(\'aab\') == False'
@@ -368,7 +370,7 @@ def test_multi_key_dict():
     assert( m['aa'] == '4' ), 'expected m[\'aa\'] == \'4\''
     assert( m[12] == '4' ), 'expected m[12] == \'4\''
 
-    m_str = '{(23): 0, (aa, mmm, 32, 12): \'4\', (something else): \'abcd\'}' 
+    m_str = '{(23): 0, (\'aa\', \'mmm\', 32, 12): \'4\', (\'something else\'): \'abcd\'}'
     assert (str(m) == m_str), 'str(m) \'%s\' is not %s ' % (str(m), m_str)
 
     # try accessing / creating new (keys)-> value mapping whilst one of these
@@ -381,13 +383,16 @@ def test_multi_key_dict():
 
     # now check if we can get all possible keys (formed in a list of tuples
     # each tuple containing all keys)
-    assert(sorted(m.keys()) == sorted(all_keys)), 'unexpected values from m.keys(), got:\n%s\n expected:\n%s)' %(sorted(m.keys()), sorted(all_keys)) 
+    res = sorted([sorted(k) for k in m.keys()])
+    all_keys = sorted([sorted(k) for k in all_keys])
+    assert(contains_all(res, all_keys)), 'unexpected values from m.keys(), got:\n%s\n expected:\n%s)' %(res, all_keys) 
 
     # check default iteritems (which will unpack tupe with key(s) and value)
+    all_keys = [sorted(k) for k in all_keys]
     num_of_elements = 0
     for keys, value in m.iteritems():
         num_of_elements += 1
-        assert(keys in all_keys), 'm.iteritems(): unexpected keys: %s' % (keys)
+        assert(sorted(keys) in all_keys), 'm.iteritems(): unexpected keys: %s' % (keys)
         assert(m[keys[0]] == value), 'm.iteritems(): unexpected value: %s (keys: %s)' % (value, keys)
     assert(num_of_elements > 0), 'm.iteritems() returned generator that did not produce anything'
 
@@ -395,19 +400,16 @@ def test_multi_key_dict():
     num_of_elements = 0
     for keys in m.iterkeys():
         num_of_elements += 1
-        assert(keys in all_keys), 'm.iterkeys(): unexpected keys: %s' % (keys)
+        assert(sorted(keys) in all_keys), 'm.iterkeys(): unexpected keys: %s' % (keys)
     assert(num_of_elements > 0), 'm.iterkeys() returned generator that did not produce anything'
-
 
     # test iterkeys(int, True): useful to get all info from the dictionary
     # dictionary is iterated over the type specified, but all keys are returned.
     num_of_elements = 0
     for keys in m.iterkeys(int, True):
         num_of_elements += 1
-        assert(keys in all_keys), 'm.iterkeys(int, True): unexpected keys: %s' % (keys)
+        assert(sorted(keys) in all_keys), 'm.iterkeys(int, True): unexpected keys: %s' % (keys)
     assert(num_of_elements > 0), 'm.iterkeys(int, True) returned generator that did not produce anything'
-
-
 
     # test values for different types of keys()
     values_for_int_keys = sorted([0, '4'])
@@ -436,9 +438,10 @@ def test_multi_key_dict():
     assert (items_for_str == sorted(m.items(str))), 'items(str): expected %s, but collected %s' % (items_for_str, 
                                                                                                      sorted(m.items(str)))
     # test items() (default - all items)
-    all_items = sorted([(('aa', 'mmm', 32, 12), '4'), (('something else',), 'abcd'), ((23,), 0)])
-    assert (all_items == sorted(m.items())), 'items() (all items): expected %s, but collected %s' % (all_items, 
-                                                                                                     sorted(m.items()))
+    all_items = [((('aa', 'mmm', 32, 12), '4')), (('something else',), 'abcd'), ((23,), 0)]
+    all_items = sorted([sorted(k) for k in [sorted(kk) for kk in all_items]])
+    res = sorted([sorted(k) for k in m.items()])
+    assert (all_items == res), 'items() (all items): expected %s,\n\t\t\t\tbut collected %s' % (all_items, res)
 
     # now test deletion..
     curr_len = len(m)
@@ -557,16 +560,11 @@ def test_multi_key_dict():
     assert(r == exp_items), 'Expected for items(): tuple of keys: {0}, but got: {1}'.format(r, exp_items) 
     assert(exp_items[0][1] == 'now'), 'Expected for items(): value: {0}, but got: {1}'.format('now', 
                                                                                               exp_items[0][1])
-
     print 'All test passed OK!'
-
 
 if __name__ == '__main__':
     try:
         test_multi_key_dict()
-    except Exception, err:
-        print 'Error: ', err
-        raise err
     except KeyboardInterrupt:
         print '\n(interrupted by user)'
 
