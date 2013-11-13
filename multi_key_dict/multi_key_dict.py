@@ -273,7 +273,7 @@ class multi_key_dict(object):
             raise Exception('Error in %s.__add_item(%s, keys=tuple/list of items): need to specify a tuple/list containing at least one key!'
                             % (self.__class__.__name__, str(item)))
         # joined values of keys will be used as a direct key. We'll encode type and key too..
-        direct_key = '`'.join([key.__class__.__name__+':' +str(key) for key in keys])        
+        direct_key = '`'.join([key.__class__.__name__+':' +str(key) for key in keys])
         for key in keys:
             key_type = str(type(key))
 
@@ -290,8 +290,14 @@ class multi_key_dict(object):
     def __all_keys_from_intermediate_key(self, intermediate_key):
         """ Internal method to find the tuple containing multiple keys"""
         keys = []
+        # since we're trying to reverse-find keys for a value in number of dicts,
+        # (which is far from optimal, but re-creating objects from the intermediate keys
+        # doesn't work for more complex types loaded from sub-modules) - at least we'll
+        # try do that only for a correct dictionary (and not all of them)
+        key_types = set([tv.split(':', 1)[0] for tv in intermediate_key.split('`')])
+        is_correct_dict = lambda key: True in [str(key).startswith('<type \'%s' % k) for k in key_types]
         for key, val in self.__dict__.items():
-            if type(val) == dict:
+            if type(val) == dict and is_correct_dict(key):
                 keys.extend([k for k, v in val.items() if v == intermediate_key])
         return(tuple(keys))
 
@@ -332,7 +338,7 @@ def test_multi_key_dict():
 
     assert( m.has_key('aa') == True ), 'expected m.has_key(\'aa\') == True'
     assert( m.has_key('aab') == False ), 'expected m.has_key(\'aab\') == False'
-    
+
     assert( m.has_key(12) == True ), 'expected m.has_key(12) == True'
     assert( m.has_key(13) == False ), 'expected m.has_key(13) == False'
     assert( m.has_key(32) == True ), 'expected m.has_key(32) == True'
@@ -357,7 +363,7 @@ def test_multi_key_dict():
     assert( m[12] == 45 ), 'expected m[12] == 45'
     assert( m[32] == 45 ), 'expected m[32] == 45'
     assert( m['mmm'] == 45 ), 'expected m[\'mmm\'] == 45'
-    
+
     m[12] = '4'
     assert( m['aa'] == '4' ), 'expected m[\'aa\'] == \'4\''
     assert( m[12] == '4' ), 'expected m[12] == \'4\''
@@ -515,7 +521,7 @@ def test_multi_key_dict():
     assert (m['xy']  == 'otherstr'), 'm[\'xy\'] is not as expected.'
     assert (m[999]   == 'otherstr'), 'm[999] is not as expected.'
     assert (m['abcd'] == 'otherstr'), 'm[\'abcd\'] is not as expected.'
-    
+
     m['abcd', 'xy']   =  'another'
     assert (m['xy']  == 'another'), 'm[\'xy\'] is not == \'another\'.'
     assert (m[999]   == 'another'), 'm[999] is not == \'another\''
@@ -536,7 +542,7 @@ def test_multi_key_dict():
     n = datetime.datetime.now()
     l = multi_key_dict()
     l[n] = 'now' # use datetime obj as a key
-    
+
     #test keys..
     r = l.keys()[0]
     assert(r == (n,)), 'Expected {0} (tuple with all key types) as a 1st key, but got: {1}'.format((n,), r)
@@ -544,7 +550,7 @@ def test_multi_key_dict():
     r = l.keys(datetime.datetime)[0]
     assert(r == n), 'Expected {0} as a key, but got: {1}'.format(n, r)
     assert(l.values() == ['now']), 'Expected values: {0}, but got: {1}'.format(l.values(), 'now')
-    
+
     # test items..
     exp_items = [((n,), 'now')]
     r = l.items()
