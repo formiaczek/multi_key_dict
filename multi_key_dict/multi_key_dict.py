@@ -313,11 +313,11 @@ class multi_key_dict(object):
         str_repr = lambda x: '\'%s\'' % x if type(x) == str else str(x)
         if hasattr(self, 'items_dict'):
             for (keys, value) in self.items():
-                items.append('(%s): %s' % (', '.join([str_repr(k) for k in keys]),
+                keys_str = [str_repr(k) for k in keys]
+                items.append('(%s): %s' % (', '.join(keys_str),
                                            str_repr(value)))
         dict_str = '{%s}' % ( ', '.join(items))
         return dict_str
-
 
 def test_multi_key_dict():
     contains_all = lambda cont, in_items: not (False in [c in cont for c in in_items])
@@ -370,8 +370,24 @@ def test_multi_key_dict():
     assert( m['aa'] == '4' ), 'expected m[\'aa\'] == \'4\''
     assert( m[12] == '4' ), 'expected m[12] == \'4\''
 
-    m_str = '{(23): 0, (\'aa\', \'mmm\', 32, 12): \'4\', (\'something else\'): \'abcd\'}'
-    assert (str(m) == m_str), 'str(m) \'%s\' is not %s ' % (str(m), m_str)
+    # test __str__
+    m_str_exp = '{(23): 0, (\'aa\', \'mmm\', 32, 12): \'4\', (\'something else\'): \'abcd\'}'
+    m_str = str(m)
+    assert (len(m_str) > 0), 'str(m) should not be empty!'    
+    assert (m_str[0] == '{'), 'str(m) should start with \'{\', but does with \'%c\'' % m_str[0]
+    assert (m_str[-1] == '}'), 'str(m) should end with \'}\', but does with \'%c\'' % m_str[-1]
+
+    # check if all key-values are there as expected. THey might be sorted differently
+    def get_values_from_str(dict_str):
+        sorted_keys_and_value = []
+        for k in dict_str.split(', ('):
+            keys, val = k.strip('{}() ').replace(')', '').split(':')
+            keys = sorted([k.strip() for k in keys.split(',')])
+            sorted_keys_and_value.append((keys, val))
+        return sorted_keys_and_value
+    exp = get_values_from_str(m_str_exp)
+    act = get_values_from_str(m_str)
+    assert (contains_all(act, exp)), 'str(m) values: \'{0}\' are not {1} '.format(act, exp)
 
     # try accessing / creating new (keys)-> value mapping whilst one of these
     # keys already maps to a value in this dictionarys
