@@ -58,6 +58,19 @@ class multi_key_dict(object):
         k['kilo'] = 'kilo'
         print k[1000] # will print 'kilo' as value was updated
     """
+    
+    def __init__(self, mapping_or_iterable=None, **kwargs):
+        """ Initializes dictionary from an optional positional argument and a possibly empty set of keyword arguments."""
+        if mapping_or_iterable is not None:
+            if type(mapping_or_iterable) is dict:
+                mapping_or_iterable = mapping_or_iterable.items()
+            for kv in mapping_or_iterable:
+                if len(kv) != 2:
+                    raise Exception('Iterable should contain tuples with exactly two values but specified: {0}.'.format(kv))
+                self[kv[0]] = kv[1]
+        for keys, value in kwargs.iteritems():
+            self[keys] = value
+
     def __getitem__(self, key):
         """ Return the value at index specified as key."""
         if self.has_key(key):
@@ -576,6 +589,24 @@ def test_multi_key_dict():
     assert(r == exp_items), 'Expected for items(): tuple of keys: {0}, but got: {1}'.format(r, exp_items) 
     assert(exp_items[0][1] == 'now'), 'Expected for items(): value: {0}, but got: {1}'.format('now', 
                                                                                               exp_items[0][1])
+
+    x = multi_key_dict({('k', 'kilo'):1000, ('M', 'MEGA', 1000000):1000000}, milli=0.01)
+    assert (x['k'] == 1000), 'x[\'k\'] is not equal to 1000'
+    x['kilo'] = 'kilo'
+    assert (x['kilo'] == 'kilo'), 'x[\'kilo\'] is not equal to \'kilo\''
+
+    y = multi_key_dict([(('two', 'duo'), 2), (('one', 'uno'), 1), ('three', 3)])
+
+    assert (y['two'] == 2), 'y[\'two\'] is not equal to 2'
+    y['one'] = 'one'
+    assert (y['one'] == 'one'), 'y[\'one\'] is not equal to \'one\''
+
+    try:
+        y = multi_key_dict([(('two', 'duo'), 2), ('one', 'uno', 1), ('three', 3)])
+        assert(False), 'creating dictionary using iterable with tuples of size > 2 should fail!'
+    except:
+        pass
+
     print 'All test passed OK!'
 
 if __name__ == '__main__':
