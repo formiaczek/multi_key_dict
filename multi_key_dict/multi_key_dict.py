@@ -159,8 +159,7 @@ class multi_key_dict(object):
             @param including_current if set to True - key will also appear on this list."""
         other_keys = []
         if self.has_key(key):
-            intermediate_key = self.__dict__[str(type(key))][key]
-            other_keys.extend(self.__all_keys_from_intermediate_key(intermediate_key))
+            other_keys.extend(self.__dict__[str(type(key))][key])
             if not including_current:
                 other_keys.remove(key)
         return other_keys
@@ -174,15 +173,13 @@ class multi_key_dict(object):
         if key_type is not None:
             key = str(key_type)
             if self.__dict__.has_key(key):
-                for key, intermediate_key in self.__dict__[key].iteritems():
+                for key, keys in self.__dict__[key].iteritems():
                     if return_all_keys:
-                        keys = self.__all_keys_from_intermediate_key(intermediate_key)
-                        yield keys, self.items_dict[intermediate_key]
+                        yield keys, self.items_dict[keys]
                     else:
-                        yield key, self.items_dict[intermediate_key]
+                        yield key, self.items_dict[keys]
         else:
-            for multi_key_type, value in self.items_dict.iteritems():
-                keys = self.__all_keys_from_intermediate_key(multi_key_type)
+            for keys, value in self.items_dict.iteritems():
                 yield keys, value
 
     def iterkeys(self, key_type=None, return_all_keys=False):
@@ -196,14 +193,12 @@ class multi_key_dict(object):
             if self.__dict__.has_key(the_key):
                 for key in self.__dict__[the_key].iterkeys():
                     if return_all_keys:
-                        intermediate_key = self.__dict__[the_key][key]
-                        keys = self.__all_keys_from_intermediate_key(intermediate_key)
-                        yield keys
+                        yield self.__dict__[the_key][key]
                     else:
                         yield key            
         else:
-            for multi_key_type in self.items_dict.keys():
-                yield self.__all_keys_from_intermediate_key(multi_key_type)
+            for keys in self.items_dict.keys():
+                yield keys
 
     def itervalues(self, key_type=None):
         """ Returns an iterator over the dictionary's values.
@@ -228,17 +223,16 @@ class multi_key_dict(object):
             keys_used_so_far = set()
             direct_key = str(key_type)
             if self.__dict__.has_key(direct_key):
-                for key, intermediate_key in self.__dict__[direct_key].iteritems():
-                    if not intermediate_key in keys_used_so_far:
-                        keys_used_so_far.add(intermediate_key)
+                for key, keys in self.__dict__[direct_key].iteritems():
+                    if not keys in keys_used_so_far:
+                        keys_used_so_far.add(keys)
                         if return_all_keys:
-                            keys = self.__all_keys_from_intermediate_key(intermediate_key)
-                            all_items.append((keys, self.items_dict[intermediate_key]))
+                            all_items.append((keys, self.items_dict[keys]))
                         else:
-                            all_items.append((key, self.items_dict[intermediate_key]))
+                            all_items.append((key, self.items_dict[keys]))
         else:
-            for multi_key_type, value in self.items_dict.iteritems():
-                all_items.append((self.__all_keys_from_intermediate_key(multi_key_type), value))
+            for keys, value in self.items_dict.iteritems():
+                all_items.append((keys, value))
         return all_items
 
     def keys(self, key_type=None):
@@ -252,8 +246,8 @@ class multi_key_dict(object):
         else:
             # keys will contain lists of keys
             all_keys = []
-            for multi_key_type in self.items_dict.keys():
-                all_keys.append(self.__all_keys_from_intermediate_key(multi_key_type))
+            for keys in self.items_dict.keys():
+                all_keys.append(keys)
             return all_keys
 
     def values(self, key_type=None):
@@ -285,8 +279,7 @@ class multi_key_dict(object):
         if(not keys or not len(keys)):
             raise Exception('Error in %s.__add_item(%s, keys=tuple/list of items): need to specify a tuple/list containing at least one key!'
                             % (self.__class__.__name__, str(item)))
-        # joined values of keys will be used as a direct key. We'll encode type and key too..
-        direct_key = '`'.join([key.__class__.__name__+':' +str(key) for key in keys])
+        direct_key = tuple(keys) # put all keys in a tuple, and use it as a key
         for key in keys:
             key_type = str(type(key))
 
@@ -299,20 +292,6 @@ class multi_key_dict(object):
             if(not self.__dict__.has_key('items_dict')):
                 self.items_dict = dict()            
             self.items_dict[direct_key] = item
-
-    def __all_keys_from_intermediate_key(self, intermediate_key):
-        """ Internal method to find the tuple containing multiple keys"""
-        keys = []
-        # since we're trying to reverse-find keys for a value in number of dicts,
-        # (which is far from optimal, but re-creating objects from the intermediate keys
-        # doesn't work for more complex types loaded from sub-modules) - at least we'll
-        # try do that only for a correct dictionary (and not all of them)
-        key_types = set([tv.split(':', 1)[0] for tv in intermediate_key.split('`')])
-        is_correct_dict = lambda key: True in [str(key).startswith('<type \'%s' % k) for k in key_types]
-        for key, val in self.__dict__.items():
-            if type(val) == dict and is_correct_dict(key):
-                keys.extend([k for k, v in val.items() if v == intermediate_key])
-        return(tuple(keys))
 
     def get(self, key, default=None):
         """ Return the value at index specified as key."""
@@ -467,7 +446,7 @@ def test_multi_key_dict():
     assert (items_for_str == sorted(m.items(str))), 'items(str): expected %s, but collected %s' % (items_for_str, 
                                                                                                      sorted(m.items(str)))
     # test items() (default - all items)
-    all_items = [((('aa', 'mmm', 32, 12), '4')), (('something else',), 'abcd'), ((23,), 0)]
+    all_items = [((('aa', 12, 32, 'mmm'), '4')), (('something else',), 'abcd'), ((23,), 0)]
     all_items = sorted([sorted(k) for k in [sorted(kk) for kk in all_items]])
     res = sorted([sorted(k) for k in m.items()])
     assert (all_items == res), 'items() (all items): expected %s,\n\t\t\t\tbut collected %s' % (all_items, res)
