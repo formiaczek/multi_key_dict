@@ -99,12 +99,10 @@ class multi_key_dict(object):
             num_of_keys_we_have = 0
             
             for x in keys:
-                print x, type(x)
                 try:
                     self.__getitem__(x)
                     num_of_keys_we_have += 1
                 except Exception, err:
-                    print err
                     continue
 
             if num_of_keys_we_have:
