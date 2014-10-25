@@ -8,7 +8,7 @@ with open('README.txt') as readme:
     long_descr = readme.read()
 
 setup(name='multi_key_dict',
-      version='1.1.0',
+      version='2.0',
       description='Multi key dictionary implementation',
       author='Lukasz Forynski',
       author_email='lukasz.forynski@gmail.com',
@@ -18,6 +18,8 @@ setup(name='multi_key_dict',
       long_description=long_descr,
       classifiers=[
                    'Programming Language :: Python',
+                   'Programming Language :: Python :: 2',
+                   'Programming Language :: Python :: 3',
                    'License :: OSI Approved :: MIT License',
                    'Development Status :: 5 - Production/Stable',
                    'Operating System :: OS Independent',
