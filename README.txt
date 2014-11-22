@@ -32,9 +32,3 @@ Multi-key dict provides also extended interface for iterating over items and key
 It can be useful for many many other similar use-cases, and there is no limit to the number of keys used to map to the value.
 
 There are few other useful methods, e.g. to iterate over dictionary (by/using) selected key type, finding other keys mapping to the same value etc. Refer to example/test code to see it in action.
-
-Distributions can be found on pypi:
-
-* https://pypi.python.org/pypi?:action=display&name=multi_key_dict
-
-Build status (on Travis CI) [![Build Status](https://travis-ci.org/formiaczek/python_data_structures.svg?branch=master)](https://travis-ci.org/formiaczek/python_data_structures)
