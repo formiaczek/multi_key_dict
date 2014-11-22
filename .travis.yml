@@ -5,5 +5,5 @@ python:
   - "3.2"
 
 script:
-  - python multi_key_dict/multi_key_dict.py
+  - python multi_key_dict.py
 
