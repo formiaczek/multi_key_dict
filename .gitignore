@@ -3,3 +3,6 @@
 */dist/*
 */build/*
 MANIFEST
+build/
+deb_dist/
+dist/

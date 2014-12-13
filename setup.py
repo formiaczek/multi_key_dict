@@ -14,7 +14,7 @@ setup(name='multi_key_dict',
       author_email='lukasz.forynski@gmail.com',
       url='https://github.com/formiaczek/multi_key_dict',
       py_modules=['multi_key_dict'],
-      license=['License :: OSI Approved :: MIT License (http://opensource.org/licenses/MIT)'],
+      license='License :: OSI Approved :: MIT License (http://opensource.org/licenses/MIT)',
       long_description=long_descr,
       classifiers=[
                    'Programming Language :: Python',
