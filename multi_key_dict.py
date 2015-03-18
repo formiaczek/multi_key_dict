@@ -27,9 +27,10 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 '''
 
+from collections import OrderedDict
 import sys
 _python3 = sys.version_info.major >= 3
-del sys
+
 
 class multi_key_dict(object):
     """ The purpose of this type is to provide a multi-key dictionary.
@@ -279,7 +280,7 @@ class multi_key_dict(object):
 
             # store direct key as a value in an intermediate dictionary
             if(not key_type in self.__dict__):
-                self.__setattr__(key_type, dict())
+                self.__setattr__(key_type, OrderedDict())
             self.__dict__[key_type][key] = direct_key
 
             # store the value in the actual dictionary
@@ -439,7 +440,7 @@ def test_multi_key_dict():
     assert (current_values == vals), 'itervalues(): expected {0}, but collected {1}'.format(current_values, vals)
 
     #test items(int)
-    items_for_int = sorted([(32, '4'), (23, 0)])
+    items_for_int = sorted([(12, '4'), (23, 0)])
     assert (items_for_int == sorted(m.items(int))), 'items(int): expected {0}, but collected {1}'.format(items_for_int, 
                                                                                                      sorted(m.items(int)))
 
@@ -450,13 +451,13 @@ def test_multi_key_dict():
 
     # test items() (default - all items)
     # we tested keys(), values(), and __get_item__ above so here we'll re-create all_items using that 
-    all_items = []
+    all_items = set()
     keys = m.keys()
     values = m.values()
     for k in keys:
-        all_items.append( (tuple(k), m[k[0]]) )
+        all_items.add( (tuple(k), m[k[0]]) )
 
-    res = list(m.items())
+    res = set(m.items())
     assert (all_items == res), 'items() (all items): expected {0},\n\t\t\t\tbut collected {1}'.format(all_items, res)
 
     # now test deletion..
@@ -496,23 +497,22 @@ def test_multi_key_dict():
 
     # test iterkeys()
     num_of_elements = 0
-    curr_index_in_range = 0
+    returned_keys = set()
     for key in m.iterkeys(int):
-        expected = tst_range[curr_index_in_range]
-        assert (key == expected), 'iterkeys(int): expected {0}, but received {1}'.format(expected, key)
-        curr_index_in_range += 1
+        returned_keys.add(key)
         num_of_elements += 1
     assert(num_of_elements > 0), 'm.iteritems(int) returned generator that did not produce anything'
+    assert (returned_keys == set(tst_range)), 'iterkeys(int): expected {0}, but received {1}'.format(expected, key)
+
 
     #test itervalues(int)
-    curr_index_in_range = 0
     num_of_elements = 0
+    returned_values  = set()
     for value in m.itervalues(int):
-        expected = tst_range[curr_index_in_range]
-        assert (value == expected), 'itervalues(int): expected {0}, but received {1}'.format(expected, value)
-        curr_index_in_range += 1
+        returned_values.add(value)
         num_of_elements += 1
-    assert(num_of_elements > 0), 'm.itervalues(int) returned generator that did not produce anything'
+    assert (num_of_elements > 0), 'm.itervalues(int) returned generator that did not produce anything'
+    assert (returned_values == set(tst_range)), 'itervalues(int): expected {0}, but received {1}'.format(expected, value)
 
     # test values(int)
     res = sorted([x for x in m.values(int)])
@@ -600,6 +600,8 @@ def test_multi_key_dict():
         pass
 
     print ('All test passed OK!')
+
+__all__ = ["multi_key_dict"]
 
 if __name__ == '__main__':
     try:
