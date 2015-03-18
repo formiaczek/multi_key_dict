@@ -482,6 +482,7 @@ def test_multi_key_dict():
     curr_len = len(m)
     del m[12]
     assert( len(m) == curr_len - 1 ), 'expected len(m) == %d' % (curr_len - 1)
+    assert(not m.has_key(12)), 'expected deleted key to no longer be found!'
 
     # try again 
     try:
