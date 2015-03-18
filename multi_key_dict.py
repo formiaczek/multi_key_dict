@@ -27,6 +27,10 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 '''
 
+import sys
+_python3 = sys.version_info.major == 3
+del sys
+
 class multi_key_dict(object):
     """ Purpose of this type is to provie a multi-key dictionary.
     This kind of dictionary has a similar interface to the standard dictionary, and indeed if used 
@@ -173,10 +177,14 @@ class multi_key_dict(object):
                    Otherwise (if not specified) ((keys,...), value) 
                    i.e. (tuple of keys, values) pairs for all items in this dictionary will be generated.
             @param return_all_keys if set to True - tuple of keys is retuned instead of a key of this type."""
+        used_keys = set()
         if key_type is not None:
             key = str(key_type)
             if key in self.__dict__:
                 for key, keys in self.__dict__[key].items():
+                    if keys in used_keys:
+                        continue
+                    used_keys.add(keys)
                     if return_all_keys:
                         yield keys, self.items_dict[keys]
                     else:
@@ -217,26 +225,12 @@ class multi_key_dict(object):
                 yield value
 
     def items(self, key_type=None, return_all_keys=False):
-        """ Return a copy of the dictionary's list of (key, value) pairs.
-            @param key_type if specified, (key, value) pairs for keys of this type will be returned.
-                 Otherwise list of pairs: ((keys), value) for all items will be returned.
-            @param return_all_keys if set to True - tuple of keys is retuned instead of a key of this type."""
-        all_items = []
-        if key_type is not None:
-            keys_used_so_far = set()
-            direct_key = str(key_type)
-            if direct_key in self.__dict__:
-                for key, keys in self.__dict__[direct_key].items():
-                    if not keys in keys_used_so_far:
-                        keys_used_so_far.add(keys)
-                        if return_all_keys:
-                            all_items.append((keys, self.items_dict[keys]))
-                        else:
-                            all_items.append((key, self.items_dict[keys]))
-        else:
-            for keys, value in self.items_dict.items():
-                all_items.append((keys, value))
-        return all_items
+        result = self.iteritems(key_type, return_all_keys)
+        if not _python3:
+            result = list(result)
+        return result
+    items.__doc__ = iteritems.__doc__
+
 
     def keys(self, key_type=None):
         """ Returns a copy of the dictionary's keys.
@@ -464,7 +458,7 @@ def test_multi_key_dict():
     for k in keys:
         all_items.append( (tuple(k), m[k[0]]) )
 
-    res = m.items()
+    res = list(m.items())
     assert (all_items == res), 'items() (all items): expected {0},\n\t\t\t\tbut collected {1}'.format(all_items, res)
 
     # now test deletion..
@@ -585,7 +579,7 @@ def test_multi_key_dict():
 
     # test items..
     exp_items = [((n,), 'now')]
-    r = l.items()
+    r = list(l.items())
     assert(r == exp_items), 'Expected for items(): tuple of keys: {0}, but got: {1}'.format(r, exp_items) 
     assert(exp_items[0][1] == 'now'), 'Expected for items(): value: {0}, but got: {1}'.format('now', 
                                                                                               exp_items[0][1])
