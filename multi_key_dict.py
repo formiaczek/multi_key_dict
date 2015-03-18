@@ -151,6 +151,10 @@ class multi_key_dict(object):
                 key_type = str(type(k))
                 if (key_type in self.__dict__ and k in self.__dict__[key_type]):
                     del self.__dict__[key_type][k]
+					
+			# remove the reference from the given key
+            del self.__dict__[key_type][key]
+			
         else:
             raise KeyError(key)
 
