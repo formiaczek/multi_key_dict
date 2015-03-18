@@ -76,13 +76,6 @@ class multi_key_dict(object):
         """ Return the value at index specified as key."""
         return self.items_dict[self.__dict__[str(type(key))][key]]
 
-    def has_key(self, key):
-        try:
-            self.__getitem__(key)
-            return True
-        except:
-            pass
-
     def __setitem__(self, keys, value):
         """ Set the value at index (or list of indexes) specified as keys.
             Note, that if multiple key list is specified, either: 
