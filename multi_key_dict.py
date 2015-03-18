@@ -28,18 +28,18 @@ DEALINGS IN THE SOFTWARE.
 '''
 
 import sys
-_python3 = sys.version_info.major == 3
+_python3 = sys.version_info.major >= 3
 del sys
 
 class multi_key_dict(object):
-    """ Purpose of this type is to provie a multi-key dictionary.
+    """ The purpose of this type is to provide a multi-key dictionary.
     This kind of dictionary has a similar interface to the standard dictionary, and indeed if used 
     with single key key elements - it's behaviour is the same as for a standard dict().
 
-    However it also allows for creation elements using multiple keys (using tuples/lists).
+    However it also allows for creation of elements using multiple keys (using tuples/lists).
     Such elements can be accessed using either of those keys (e.g read/updated/deleted).
-    Dictionary provides also extended interface for iterating over items and keys by the key type.
-    This can be useful e.g.: when creating dictionaries with (index,name) allowing to iterate over
+    Dictionary provides also an extended interface for iterating over items and keys by the key type.
+    This can be useful e.g.: when creating dictionaries with (index,name) allowing one to iterate over
     items using either: names or indexes. It can be useful for many many other similar use-cases,
     and there is no limit to the number of keys used to map to the value.
 
@@ -56,13 +56,13 @@ class multi_key_dict(object):
         k[1000, 'kilo', 'k'] = 'kilo (x1000)'
         print k[1000]   # will print 'kilo (x1000)'
         print k['k']  # will also print 'kilo (x1000)'
-        
+
         # the same way objects can be updated, and if an object is updated using one key, the new value will
         # be accessible using any other key, e.g. for example above:
         k['kilo'] = 'kilo'
         print k[1000] # will print 'kilo' as value was updated
     """
-    
+
     def __init__(self, mapping_or_iterable=None, **kwargs):
         """ Initializes dictionary from an optional positional argument and a possibly empty set of keyword arguments."""
         self.items_dict = {}
@@ -90,7 +90,7 @@ class multi_key_dict(object):
         if(type(keys) in [tuple, list]):
             at_least_one_key_exists = False
             num_of_keys_we_have = 0
-            
+
             for x in keys:
                 try:
                     self.__getitem__(x)
@@ -142,7 +142,7 @@ class multi_key_dict(object):
 
             # remove the item in main dictionary 
             del self.items_dict[intermediate_key]
-            
+
             # and remove all references (if there were other keys)
             for k in self.get_other_keys(key):
                 key_type = str(type(k))
@@ -178,20 +178,19 @@ class multi_key_dict(object):
                    i.e. (tuple of keys, values) pairs for all items in this dictionary will be generated.
             @param return_all_keys if set to True - tuple of keys is retuned instead of a key of this type."""
         used_keys = set()
-        if key_type is not None:
-            key = str(key_type)
-            if key in self.__dict__:
-                for key, keys in self.__dict__[key].items():
-                    if keys in used_keys:
-                        continue
-                    used_keys.add(keys)
-                    if return_all_keys:
-                        yield keys, self.items_dict[keys]
-                    else:
-                        yield key, self.items_dict[keys]
-        else:
-            for keys, value in self.items_dict.items():
-                yield keys, value
+        if key_type is None:
+            for item in self.items_dict.items():
+                yield item
+        key = str(key_type)
+        if key in self.__dict__:
+            for key, keys in self.__dict__[key].items():
+                if keys in used_keys:
+                    continue
+                used_keys.add(keys)
+                if return_all_keys:
+                    yield keys, self.items_dict[keys]
+                else:
+                    yield key, self.items_dict[keys]
 
     def iterkeys(self, key_type=None, return_all_keys=False):
         """ Returns an iterator over the dictionary's keys.
@@ -224,13 +223,12 @@ class multi_key_dict(object):
             for value in self.items_dict.values():
                 yield value
 
-    def items(self, key_type=None, return_all_keys=False):
-        result = self.iteritems(key_type, return_all_keys)
-        if not _python3:
-            result = list(result)
-        return result
-    items.__doc__ = iteritems.__doc__
-
+    if _python3:
+        items = iteritems
+    else:
+        def items(self, key_type=None, return_all_keys=False):
+            return list(self.iteritems(key_type, return_all_keys))
+        items.__doc__ = iteritems.__doc__
 
     def keys(self, key_type=None):
         """ Returns a copy of the dictionary's keys.
@@ -270,7 +268,7 @@ class multi_key_dict(object):
             length = len(self.items_dict)
         return length
 
-    def __add_item(self, item, keys=None):        
+    def __add_item(self, item, keys=None):
         """ Internal method to add an item to the multi-key dictionary"""
         if(not keys or not len(keys)):
             raise Exception('Error in %s.__add_item(%s, keys=tuple/list of items): need to specify a tuple/list containing at least one key!'
@@ -283,10 +281,10 @@ class multi_key_dict(object):
             if(not key_type in self.__dict__):
                 self.__setattr__(key_type, dict())
             self.__dict__[key_type][key] = direct_key
-         
+
             # store the value in the actual dictionary
             if(not 'items_dict' in self.__dict__):
-                self.items_dict = dict()            
+                self.items_dict = dict()
             self.items_dict[direct_key] = item
 
     def get(self, key, default=None):
@@ -408,7 +406,7 @@ def test_multi_key_dict():
         num_of_elements += 1
         keys_s = sorted([str(k) for k in keys])
         assert(keys_s in expected), 'm.keys(): unexpected keys: {0}'.format(keys_s)
-        
+
     assert(num_of_elements > 0), 'm.iterkeys() returned generator that did not produce anything'
 
     # test iterkeys(int, True): useful to get all info from the dictionary
