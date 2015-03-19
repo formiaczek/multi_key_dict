@@ -178,20 +178,22 @@ class multi_key_dict(object):
                    Otherwise (if not specified) ((keys,...), value) 
                    i.e. (tuple of keys, values) pairs for all items in this dictionary will be generated.
             @param return_all_keys if set to True - tuple of keys is retuned instead of a key of this type."""
-        used_keys = set()
+
         if key_type is None:
             for item in self.items_dict.items():
                 yield item
+            return
+        used_keys = set()
         key = str(key_type)
         if key in self.__dict__:
             for key, keys in self.__dict__[key].items():
                 if keys in used_keys:
                     continue
                 used_keys.add(keys)
-                if return_all_keys:
-                    yield keys, self.items_dict[keys]
-                else:
-                    yield key, self.items_dict[keys]
+                value = self.items_dict[keys]
+                if not return_all_keys:
+                    keys = tuple(k for k in keys if isinstance(k, key_type))
+                yield keys, value
 
     def iterkeys(self, key_type=None, return_all_keys=False):
         """ Returns an iterator over the dictionary's keys.
@@ -440,12 +442,12 @@ def test_multi_key_dict():
     assert (current_values == vals), 'itervalues(): expected {0}, but collected {1}'.format(current_values, vals)
 
     #test items(int)
-    items_for_int = sorted([(12, '4'), (23, 0)])
+    items_for_int = sorted([((12, 32), '4'), ((23,), 0)])
     assert (items_for_int == sorted(m.items(int))), 'items(int): expected {0}, but collected {1}'.format(items_for_int, 
                                                                                                      sorted(m.items(int)))
 
     # test items(str)
-    items_for_str = set([('aa', '4'), ('something else', 'abcd')])
+    items_for_str = set([(('aa','mmm'), '4'), (('something else',), 'abcd')])
     res = set(m.items(str))
     assert (set(res) == items_for_str), 'items(str): expected {0}, but collected {1}'.format(items_for_str, res)
 
@@ -487,13 +489,15 @@ def test_multi_key_dict():
         pass
 
     # prepare for other tests (also testing creation of new items)
+    del m
+    m = multi_key_dict()
     tst_range = list(range(10, 40)) + list(range(50, 70))
     for i in tst_range:
         m[i] = i # will create a dictionary, where keys are same as items
 
     # test items()
     for key, value in m.items(int):
-        assert(key == value), 'items(int): expected {0}, but received {1}'.format(key, value)
+        assert(key == (value,)), 'items(int): expected {0}, but received {1}'.format(key, value)
 
     # test iterkeys()
     num_of_elements = 0
