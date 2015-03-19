@@ -27,7 +27,6 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 '''
 
-from collections import OrderedDict
 import sys
 _python3 = sys.version_info.major >= 3
 
@@ -282,7 +281,7 @@ class multi_key_dict(object):
 
             # store direct key as a value in an intermediate dictionary
             if(not key_type in self.__dict__):
-                self.__setattr__(key_type, OrderedDict())
+                self.__setattr__(key_type, dict())
             self.__dict__[key_type][key] = direct_key
 
             # store the value in the actual dictionary
