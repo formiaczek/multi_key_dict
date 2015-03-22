@@ -27,15 +27,19 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 '''
 
+import sys
+_python3 = sys.version_info.major >= 3
+
+
 class multi_key_dict(object):
-    """ Purpose of this type is to provie a multi-key dictionary.
+    """ The purpose of this type is to provide a multi-key dictionary.
     This kind of dictionary has a similar interface to the standard dictionary, and indeed if used 
     with single key key elements - it's behaviour is the same as for a standard dict().
 
-    However it also allows for creation elements using multiple keys (using tuples/lists).
+    However it also allows for creation of elements using multiple keys (using tuples/lists).
     Such elements can be accessed using either of those keys (e.g read/updated/deleted).
-    Dictionary provides also extended interface for iterating over items and keys by the key type.
-    This can be useful e.g.: when creating dictionaries with (index,name) allowing to iterate over
+    Dictionary provides also an extended interface for iterating over items and keys by the key type.
+    This can be useful e.g.: when creating dictionaries with (index,name) allowing one to iterate over
     items using either: names or indexes. It can be useful for many many other similar use-cases,
     and there is no limit to the number of keys used to map to the value.
 
@@ -52,13 +56,13 @@ class multi_key_dict(object):
         k[1000, 'kilo', 'k'] = 'kilo (x1000)'
         print k[1000]   # will print 'kilo (x1000)'
         print k['k']  # will also print 'kilo (x1000)'
-        
+
         # the same way objects can be updated, and if an object is updated using one key, the new value will
         # be accessible using any other key, e.g. for example above:
         k['kilo'] = 'kilo'
         print k[1000] # will print 'kilo' as value was updated
     """
-    
+
     def __init__(self, mapping_or_iterable=None, **kwargs):
         """ Initializes dictionary from an optional positional argument and a possibly empty set of keyword arguments."""
         self.items_dict = {}
@@ -76,13 +80,6 @@ class multi_key_dict(object):
         """ Return the value at index specified as key."""
         return self.items_dict[self.__dict__[str(type(key))][key]]
 
-    def has_key(self, key):
-        try:
-            self.__getitem__(key)
-            return True
-        except:
-            pass
-
     def __setitem__(self, keys, value):
         """ Set the value at index (or list of indexes) specified as keys.
             Note, that if multiple key list is specified, either: 
@@ -93,7 +90,7 @@ class multi_key_dict(object):
         if(type(keys) in [tuple, list]):
             at_least_one_key_exists = False
             num_of_keys_we_have = 0
-            
+
             for x in keys:
                 try:
                     self.__getitem__(x)
@@ -145,7 +142,7 @@ class multi_key_dict(object):
 
             # remove the item in main dictionary 
             del self.items_dict[intermediate_key]
-            
+
             # and remove all references (if there were other keys)
             for k in self.get_other_keys(key):
                 key_type = str(type(k))
@@ -180,16 +177,21 @@ class multi_key_dict(object):
                    Otherwise (if not specified) ((keys,...), value) 
                    i.e. (tuple of keys, values) pairs for all items in this dictionary will be generated.
             @param return_all_keys if set to True - tuple of keys is retuned instead of a key of this type."""
-        if key_type is not None:
-            key = str(key_type)
-            if key in self.__dict__:
-                for key, keys in self.__dict__[key].items():
-                    if return_all_keys:
-                        yield keys, self.items_dict[keys]
-                    else:
-                        yield key, self.items_dict[keys]
-        else:
-            for keys, value in self.items_dict.items():
+
+        if key_type is None:
+            for item in self.items_dict.items():
+                yield item
+            return
+        used_keys = set()
+        key = str(key_type)
+        if key in self.__dict__:
+            for key, keys in self.__dict__[key].items():
+                if keys in used_keys:
+                    continue
+                used_keys.add(keys)
+                value = self.items_dict[keys]
+                if not return_all_keys:
+                    keys = tuple(k for k in keys if isinstance(k, key_type))
                 yield keys, value
 
     def iterkeys(self, key_type=None, return_all_keys=False):
@@ -223,27 +225,12 @@ class multi_key_dict(object):
             for value in self.items_dict.values():
                 yield value
 
-    def items(self, key_type=None, return_all_keys=False):
-        """ Return a copy of the dictionary's list of (key, value) pairs.
-            @param key_type if specified, (key, value) pairs for keys of this type will be returned.
-                 Otherwise list of pairs: ((keys), value) for all items will be returned.
-            @param return_all_keys if set to True - tuple of keys is retuned instead of a key of this type."""
-        all_items = []
-        if key_type is not None:
-            keys_used_so_far = set()
-            direct_key = str(key_type)
-            if direct_key in self.__dict__:
-                for key, keys in self.__dict__[direct_key].items():
-                    if not keys in keys_used_so_far:
-                        keys_used_so_far.add(keys)
-                        if return_all_keys:
-                            all_items.append((keys, self.items_dict[keys]))
-                        else:
-                            all_items.append((key, self.items_dict[keys]))
-        else:
-            for keys, value in self.items_dict.items():
-                all_items.append((keys, value))
-        return all_items
+    if _python3:
+        items = iteritems
+    else:
+        def items(self, key_type=None, return_all_keys=False):
+            return list(self.iteritems(key_type, return_all_keys))
+        items.__doc__ = iteritems.__doc__
 
     def keys(self, key_type=None):
         """ Returns a copy of the dictionary's keys.
@@ -283,7 +270,7 @@ class multi_key_dict(object):
             length = len(self.items_dict)
         return length
 
-    def __add_item(self, item, keys=None):        
+    def __add_item(self, item, keys=None):
         """ Internal method to add an item to the multi-key dictionary"""
         if(not keys or not len(keys)):
             raise Exception('Error in %s.__add_item(%s, keys=tuple/list of items): need to specify a tuple/list containing at least one key!'
@@ -296,10 +283,10 @@ class multi_key_dict(object):
             if(not key_type in self.__dict__):
                 self.__setattr__(key_type, dict())
             self.__dict__[key_type][key] = direct_key
-         
+
             # store the value in the actual dictionary
             if(not 'items_dict' in self.__dict__):
-                self.items_dict = dict()            
+                self.items_dict = dict()
             self.items_dict[direct_key] = item
 
     def get(self, key, default=None):
@@ -421,7 +408,7 @@ def test_multi_key_dict():
         num_of_elements += 1
         keys_s = sorted([str(k) for k in keys])
         assert(keys_s in expected), 'm.keys(): unexpected keys: {0}'.format(keys_s)
-        
+
     assert(num_of_elements > 0), 'm.iterkeys() returned generator that did not produce anything'
 
     # test iterkeys(int, True): useful to get all info from the dictionary
@@ -454,24 +441,24 @@ def test_multi_key_dict():
     assert (current_values == vals), 'itervalues(): expected {0}, but collected {1}'.format(current_values, vals)
 
     #test items(int)
-    items_for_int = sorted([(32, '4'), (23, 0)])
+    items_for_int = sorted([((12, 32), '4'), ((23,), 0)])
     assert (items_for_int == sorted(m.items(int))), 'items(int): expected {0}, but collected {1}'.format(items_for_int, 
                                                                                                      sorted(m.items(int)))
 
     # test items(str)
-    items_for_str = set([('aa', '4'), ('something else', 'abcd')])
+    items_for_str = set([(('aa','mmm'), '4'), (('something else',), 'abcd')])
     res = set(m.items(str))
     assert (set(res) == items_for_str), 'items(str): expected {0}, but collected {1}'.format(items_for_str, res)
 
     # test items() (default - all items)
     # we tested keys(), values(), and __get_item__ above so here we'll re-create all_items using that 
-    all_items = []
+    all_items = set()
     keys = m.keys()
     values = m.values()
     for k in keys:
-        all_items.append( (tuple(k), m[k[0]]) )
+        all_items.add( (tuple(k), m[k[0]]) )
 
-    res = m.items()
+    res = set(m.items())
     assert (all_items == res), 'items() (all items): expected {0},\n\t\t\t\tbut collected {1}'.format(all_items, res)
 
     # now test deletion..
@@ -501,33 +488,34 @@ def test_multi_key_dict():
         pass
 
     # prepare for other tests (also testing creation of new items)
+    del m
+    m = multi_key_dict()
     tst_range = list(range(10, 40)) + list(range(50, 70))
     for i in tst_range:
         m[i] = i # will create a dictionary, where keys are same as items
 
     # test items()
     for key, value in m.items(int):
-        assert(key == value), 'items(int): expected {0}, but received {1}'.format(key, value)
+        assert(key == (value,)), 'items(int): expected {0}, but received {1}'.format(key, value)
 
     # test iterkeys()
     num_of_elements = 0
-    curr_index_in_range = 0
+    returned_keys = set()
     for key in m.iterkeys(int):
-        expected = tst_range[curr_index_in_range]
-        assert (key == expected), 'iterkeys(int): expected {0}, but received {1}'.format(expected, key)
-        curr_index_in_range += 1
+        returned_keys.add(key)
         num_of_elements += 1
     assert(num_of_elements > 0), 'm.iteritems(int) returned generator that did not produce anything'
+    assert (returned_keys == set(tst_range)), 'iterkeys(int): expected {0}, but received {1}'.format(expected, key)
+
 
     #test itervalues(int)
-    curr_index_in_range = 0
     num_of_elements = 0
+    returned_values  = set()
     for value in m.itervalues(int):
-        expected = tst_range[curr_index_in_range]
-        assert (value == expected), 'itervalues(int): expected {0}, but received {1}'.format(expected, value)
-        curr_index_in_range += 1
+        returned_values.add(value)
         num_of_elements += 1
-    assert(num_of_elements > 0), 'm.itervalues(int) returned generator that did not produce anything'
+    assert (num_of_elements > 0), 'm.itervalues(int) returned generator that did not produce anything'
+    assert (returned_values == set(tst_range)), 'itervalues(int): expected {0}, but received {1}'.format(expected, value)
 
     # test values(int)
     res = sorted([x for x in m.values(int)])
@@ -592,7 +580,7 @@ def test_multi_key_dict():
 
     # test items..
     exp_items = [((n,), 'now')]
-    r = l.items()
+    r = list(l.items())
     assert(r == exp_items), 'Expected for items(): tuple of keys: {0}, but got: {1}'.format(r, exp_items) 
     assert(exp_items[0][1] == 'now'), 'Expected for items(): value: {0}, but got: {1}'.format('now', 
                                                                                               exp_items[0][1])
@@ -615,6 +603,8 @@ def test_multi_key_dict():
         pass
 
     print ('All test passed OK!')
+
+__all__ = ["multi_key_dict"]
 
 if __name__ == '__main__':
     try:
