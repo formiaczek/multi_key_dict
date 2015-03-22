@@ -27,9 +27,8 @@ OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 DEALINGS IN THE SOFTWARE.
 '''
 
-import sys
-_python3 = sys.version_info.major >= 3
-
+import platform
+_python3 = int(platform.python_version_tuple()[0]) >= 3
 
 class multi_key_dict(object):
     """ The purpose of this type is to provide a multi-key dictionary.
