@@ -143,13 +143,10 @@ class multi_key_dict(object):
             del self.items_dict[intermediate_key]
 
             # and remove all references (if there were other keys)
-            for k in self.get_other_keys(key):
+            for k in self.get_other_keys(key, True):
                 key_type = str(type(k))
                 if (key_type in self.__dict__ and k in self.__dict__[key_type]):
                     del self.__dict__[key_type][k]
-
-            # remove the reference from the given key
-            del self.__dict__[key_type][key]
 
         else:
             raise KeyError(key)
