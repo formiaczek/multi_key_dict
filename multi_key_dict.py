@@ -147,6 +147,10 @@ class multi_key_dict(object):
                 key_type = str(type(k))
                 if (key_type in self.__dict__ and k in self.__dict__[key_type]):
                     del self.__dict__[key_type][k]
+
+            # remove the reference from the given key
+            del self.__dict__[key_type][key]
+
         else:
             raise KeyError(key)
 
@@ -464,6 +468,7 @@ def test_multi_key_dict():
     curr_len = len(m)
     del m[12]
     assert( len(m) == curr_len - 1 ), 'expected len(m) == %d' % (curr_len - 1)
+    assert(not m.has_key(12)), 'expected deleted key to no longer be found!'
 
     # try again 
     try:
