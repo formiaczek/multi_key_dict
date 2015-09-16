@@ -122,7 +122,7 @@ class multi_key_dict(object):
             first_key = keys
 
         key_type = str(type(first_key)) # find the intermediate dictionary..
-        if self.has_key(first_key):
+        if first_key in self:
             self.items_dict[self.__dict__[key_type][first_key]] = value # .. and update the object if it exists..
         else:
             if(type(keys) not in [tuple, list]):
@@ -134,7 +134,7 @@ class multi_key_dict(object):
         """ Called to implement deletion of self[key]."""
         key_type = str(type(key))
 
-        if (self.has_key(key) and
+        if (key in self and
             self.items_dict and
             (self.__dict__[key_type][key] in self.items_dict) ):
             intermediate_key = self.__dict__[key_type][key]
@@ -151,7 +151,7 @@ class multi_key_dict(object):
         else:
             raise KeyError(key)
 
-    def has_key(self, key):
+    def __contains__(self, key):
         """ Returns True if this object contains an item referenced by the key."""
         key_type = str(type(key))
         if key_type in self.__dict__:
@@ -160,12 +160,16 @@ class multi_key_dict(object):
 
         return False
 
+    def has_key(self, key):
+        """ Returns True if this object contains an item referenced by the key."""
+        return key in self
+
     def get_other_keys(self, key, including_current=False):
         """ Returns list of other keys that are mapped to the same value as specified key. 
             @param key - key for which other keys should be returned.
             @param including_current if set to True - key will also appear on this list."""
         other_keys = []
-        if self.has_key(key):
+        if key in self:
             other_keys.extend(self.__dict__[str(type(key))][key])
             if not including_current:
                 other_keys.remove(key)
@@ -291,7 +295,7 @@ class multi_key_dict(object):
 
     def get(self, key, default=None):
         """ Return the value at index specified as key."""
-        if self.has_key(key):
+        if key in self:
             return self.items_dict[self.__dict__[str(type(key))][key]]
         else:
             return default
