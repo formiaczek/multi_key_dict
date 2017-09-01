@@ -384,7 +384,7 @@ def test_multi_key_dict():
     assert (set(act) == set(exp)), 'str(m) values: \'{0}\' are not {1} '.format(act, exp)
 
     # try accessing / creating new (keys)-> value mapping whilst one of these
-    # keys already maps to a value in this dictionarys
+    # keys already maps to a value in this dictionaries
     try:
         m['aa', 'bb'] = 'something new'
         assert(False), 'Should not allow adding multiple-keys when one of keys (\'aa\') already exists!'
