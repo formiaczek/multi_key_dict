@@ -6,3 +6,4 @@ MANIFEST
 build/
 deb_dist/
 dist/
+*.egg-info/
