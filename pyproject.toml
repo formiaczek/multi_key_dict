@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "multi_key_dict"
-version = "2.0.3"
+version = "2.0.4"
 description = "Multi key dictionary implementation"
 readme = {file = "README.txt", content-type = "text/x-rst"}
 authors = [{name = "Lukasz Forynski", email = "lukasz.forynski@gmail.com"}]
